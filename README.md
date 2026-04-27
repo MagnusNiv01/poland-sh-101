@@ -31,6 +31,22 @@ npm run dev
 
 Then open the local Vite URL shown in the terminal.
 
+## Docker Compose Development
+
+```bash
+docker compose up
+```
+
+Then open `http://localhost:5173` in your browser.
+
+The Compose setup runs the existing Vite dev server with `--host 0.0.0.0`, exposes port `5173`, bind-mounts the project into `/app`, and keeps container dependencies in a separate `node_modules` volume. This keeps hot reload available while avoiding Linux container dependencies being written into the host `node_modules` directory.
+
+To stop the app:
+
+```bash
+docker compose down
+```
+
 ## Build
 
 ```bash
