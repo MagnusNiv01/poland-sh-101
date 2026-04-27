@@ -31,11 +31,21 @@ export class SynthPanel {
     this.onPatchChange(this.patch);
   }
 
+  private setPwmAmount(value: number): void {
+    this.patch = {
+      ...this.patch,
+      pwmAmount: value,
+      lfoPulseWidthAmount: value,
+    };
+    this.onPatchChange(this.patch);
+  }
+
   private createJackStrip(): HTMLElement {
     const strip = document.createElement('div');
     strip.className = 'jack-strip';
     const labels = ['EXT CLK IN', 'HOLD', 'CV OUT', 'GATE OUT', 'CV IN', 'GATE IN', 'PHONES', 'OUTPUT'];
 
+    // Placeholder controls: jack labels are decorative until external I/O features are implemented.
     for (const label of labels) {
       const item = document.createElement('div');
       item.className = 'jack-item';
@@ -83,7 +93,7 @@ export class SynthPanel {
           { label: 'LFO', value: 'lfo' },
           { label: 'ENV', value: 'envelope' },
         ], onChange: (value) => this.setPatch('pwmSource', value) }),
-        createSlider({ label: 'PWM AMT', min: 0, max: 0.45, step: 0.01, value: this.patch.pwmAmount, onChange: (value) => this.setPatch('pwmAmount', value) }),
+        createSlider({ label: 'PWM AMT', min: 0, max: 0.45, step: 0.01, value: this.patch.pwmAmount, onChange: (value) => this.setPwmAmount(value) }),
       ]),
       this.section('SOURCE MIXER', [
         createSlider({ label: 'PULSE', min: 0, max: 1, step: 0.01, value: this.patch.pulseLevel, className: 'accent-red', onChange: (value) => this.setPatch('pulseLevel', value) }),
@@ -108,7 +118,7 @@ export class SynthPanel {
           { label: 'GATE', value: 'gate' },
           { label: 'ENV', value: 'envelope' },
         ], onChange: (value) => this.setPatch('vcaMode', value) }),
-        createSlider({ label: 'LEVEL', min: 0, max: 1, step: 0.01, value: this.patch.masterVolume, onChange: (value) => this.setPatch('masterVolume', value) }),
+        createSlider({ label: 'LEVEL', min: 0, max: 1, step: 0.01, value: this.patch.vcaLevel, onChange: (value) => this.setPatch('vcaLevel', value) }),
       ], 'vca-section'),
       this.section('ENVELOPE', [
         createSlider({ label: 'A', min: 0.001, max: 2.5, step: 0.001, value: this.patch.envAttack, className: 'accent-red', onChange: (value) => this.setPatch('envAttack', value) }),
@@ -130,6 +140,7 @@ export class SynthPanel {
       buttons,
       this.createModelLabel(),
     );
+    // Placeholder controls: sequencer/arpeggiator actions are visual only until those engines exist.
     for (const label of ['POWER', 'LOAD', 'PLAY', 'DOWN', 'U & D', 'UP', 'HOLD', 'KEY TRANS']) {
       buttons.append(this.placeholderSwitch(label));
     }

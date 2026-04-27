@@ -3,6 +3,7 @@ import type { WorkletMessage } from '../types';
 import { AdsrEnvelope } from './dsp/Envelope';
 import { ResonantLowPassFilter } from './dsp/Filter';
 import { Lfo } from './dsp/Lfo';
+import { NoiseGenerator } from './dsp/Noise';
 import { clampPulseWidth, PulseOscillator, SawOscillator, SubOscillator } from './dsp/Oscillator';
 import { Smoother } from './dsp/Smoother';
 
@@ -21,15 +22,31 @@ class PolandSh101Processor extends AudioWorkletProcessor {
   private readonly envelope = new AdsrEnvelope();
   private readonly filter = new ResonantLowPassFilter();
   private readonly lfo = new Lfo();
+  private readonly noise = new NoiseGenerator();
   private readonly frequency = new Smoother(sampleRate, 0.01, 110);
   private readonly cutoff = new Smoother(sampleRate, 0.015, 1200);
+  private readonly resonance = new Smoother(sampleRate, 0.02, defaultPatch.filterResonance);
   private readonly pulseWidth = new Smoother(sampleRate, 0.01, 0.5);
+  private readonly sawLevel = new Smoother(sampleRate, 0.008, defaultPatch.sawLevel);
+  private readonly pulseLevel = new Smoother(sampleRate, 0.008, defaultPatch.pulseLevel);
+  private readonly subLevel = new Smoother(sampleRate, 0.008, defaultPatch.subLevel);
+  private readonly noiseLevel = new Smoother(sampleRate, 0.008, defaultPatch.noiseLevel);
+  private readonly masterVolume = new Smoother(sampleRate, 0.012, defaultPatch.masterVolume);
+  private readonly vcaLevel = new Smoother(sampleRate, 0.012, defaultPatch.vcaLevel);
+  private readonly filterEnvAmount = new Smoother(sampleRate, 0.02, defaultPatch.filterEnvelopeAmount);
+  private readonly filterLfoAmount = new Smoother(sampleRate, 0.02, defaultPatch.filterLfoAmount);
+  private readonly filterKeyTracking = new Smoother(sampleRate, 0.02, defaultPatch.filterKeyboardTracking);
+  private readonly pwmAmount = new Smoother(sampleRate, 0.015, defaultPatch.pwmAmount);
+  private readonly lfoPulseWidthAmount = new Smoother(sampleRate, 0.015, defaultPatch.lfoPulseWidthAmount);
+  private readonly lfoPitchAmount = new Smoother(sampleRate, 0.02, defaultPatch.lfoPitchAmount);
+  private readonly lfoFilterBenderAmount = new Smoother(sampleRate, 0.02, defaultPatch.lfoFilterAmount);
+  private readonly benderLfoModAmount = new Smoother(sampleRate, 0.02, defaultPatch.benderLfoModAmount);
+  private readonly pitchBendValue = new Smoother(sampleRate, 0.008, 0);
+  private readonly pitchBendAmount = new Smoother(sampleRate, 0.02, defaultPatch.pitchBendAmount);
   private gate = false;
   private noteFrequency = 110;
   private noteVelocity = 0;
   private currentNote = -1;
-  private pitchBend = 0;
-  private noiseState = 22222;
   private lfoAgeSeconds = 0;
 
   constructor() {
@@ -42,6 +59,7 @@ class PolandSh101Processor extends AudioWorkletProcessor {
     const left = output[0];
     const right = output[1] ?? left;
     const patch = this.patch;
+    this.updateSmoothTargets(patch);
 
     for (let i = 0; i < left.length; i += 1) {
       if (this.gate) {
@@ -57,37 +75,39 @@ class PolandSh101Processor extends AudioWorkletProcessor {
       );
       const lfoDelayGain = patch.lfoDelay <= 0 ? 1 : Math.min(1, this.lfoAgeSeconds / patch.lfoDelay);
       const lfoValue = this.lfo.next(patch.lfoRate, patch.lfoWaveform, sampleRate) * lfoDelayGain;
-      const bendSemitones = this.pitchBend * patch.pitchBendAmount;
-      const pitchLfoSemitones = lfoValue * patch.lfoPitchAmount;
+      const bendSemitones = this.pitchBendValue.next() * this.pitchBendAmount.next();
+      const pitchLfoSemitones = lfoValue * (this.lfoPitchAmount.next() + this.benderLfoModAmount.next());
       const frequencyTarget = this.noteFrequency * 2 ** ((bendSemitones + pitchLfoSemitones) / 12);
       this.frequency.setTarget(frequencyTarget * this.rangeMultiplier(patch.vcoRange));
       const frequency = this.frequency.next();
 
+      const pwmAmount = this.pwmAmount.next();
+      const lfoPulseWidthAmount = this.lfoPulseWidthAmount.next();
       const pwmMod =
         patch.pwmSource === 'lfo'
-          ? lfoValue * patch.lfoPulseWidthAmount
+          ? lfoValue * lfoPulseWidthAmount
           : patch.pwmSource === 'envelope'
-            ? (env * 2 - 1) * patch.pwmAmount
+            ? (env * 2 - 1) * pwmAmount
             : 0;
       this.pulseWidth.setTarget(clampPulseWidth(patch.pulseWidth + pwmMod));
       const pulseWidth = this.pulseWidth.next();
 
-      const saw = this.saw.next(frequency, sampleRate) * patch.sawLevel;
-      const pulse = this.pulse.next(frequency, sampleRate, pulseWidth) * patch.pulseLevel;
+      const saw = this.saw.next(frequency, sampleRate) * this.sawLevel.next();
+      const pulse = this.pulse.next(frequency, sampleRate, pulseWidth) * this.pulseLevel.next();
       const subDivisor = patch.subMode === 'oneOctaveDown' ? 2 : 4;
       const subNarrow = patch.subMode === 'twoOctavesDownNarrow';
-      const sub = this.sub.next(frequency, sampleRate, subDivisor, subNarrow) * patch.subLevel;
-      const noise = this.whiteNoise() * patch.noiseLevel;
-      const mixed = (saw + pulse + sub + noise) * 0.32;
+      const sub = this.sub.next(frequency, sampleRate, subDivisor, subNarrow) * this.subLevel.next();
+      const noise = this.noise.nextWhite() * this.noiseLevel.next();
+      const mixed = (saw + pulse + sub + noise) * 0.28;
 
       const cutoffBase = this.cutoffFromControl(patch.filterCutoff);
-      const keyTrack = Math.max(0, frequency - 130) * patch.filterKeyboardTracking * 8;
-      const envCutoff = env * patch.filterEnvelopeAmount * 6200;
-      const lfoCutoff = lfoValue * (patch.filterLfoAmount + patch.lfoFilterAmount) * 3600;
+      const keyTrack = Math.max(0, frequency - 130) * this.filterKeyTracking.next() * 8;
+      const envCutoff = env * this.filterEnvAmount.next() * 6200;
+      const lfoCutoff = lfoValue * (this.filterLfoAmount.next() + this.lfoFilterBenderAmount.next()) * 3600;
       this.cutoff.setTarget(cutoffBase + keyTrack + envCutoff + lfoCutoff);
-      const filtered = this.filter.process(mixed, this.cutoff.next(), patch.filterResonance, sampleRate);
+      const filtered = this.filter.process(mixed, this.cutoff.next(), this.resonance.next(), sampleRate);
       const amp = patch.vcaMode === 'gate' ? (this.gate ? 1 : 0) : env;
-      const shaped = this.softClip(filtered * amp * patch.masterVolume * this.noteVelocity * 1.8);
+      const shaped = this.softClip(filtered * amp * this.vcaLevel.next() * this.masterVolume.next() * this.noteVelocity * 2.1);
 
       left[i] = shaped;
       right[i] = shaped;
@@ -124,7 +144,7 @@ class PolandSh101Processor extends AudioWorkletProcessor {
       return;
     }
     if (message.type === 'pitchBend') {
-      this.pitchBend = Math.max(-1, Math.min(1, message.value));
+      this.pitchBendValue.setTarget(Math.max(-1, Math.min(1, message.value)));
       return;
     }
     if (message.type === 'allNotesOff') {
@@ -151,13 +171,27 @@ class PolandSh101Processor extends AudioWorkletProcessor {
     return 30 * 2 ** (value * 9.4);
   }
 
-  private whiteNoise(): number {
-    this.noiseState = (this.noiseState * 1664525 + 1013904223) | 0;
-    return ((this.noiseState >>> 0) / 2147483647) - 1;
-  }
-
   private softClip(value: number): number {
     return Math.tanh(value);
+  }
+
+  private updateSmoothTargets(patch: PolandSh101Patch): void {
+    this.sawLevel.setTarget(patch.sawLevel);
+    this.pulseLevel.setTarget(patch.pulseLevel);
+    this.subLevel.setTarget(patch.subLevel);
+    this.noiseLevel.setTarget(patch.noiseLevel);
+    this.masterVolume.setTarget(patch.masterVolume);
+    this.vcaLevel.setTarget(patch.vcaLevel);
+    this.resonance.setTarget(patch.filterResonance);
+    this.filterEnvAmount.setTarget(patch.filterEnvelopeAmount);
+    this.filterLfoAmount.setTarget(patch.filterLfoAmount);
+    this.filterKeyTracking.setTarget(patch.filterKeyboardTracking);
+    this.pwmAmount.setTarget(patch.pwmAmount);
+    this.lfoPulseWidthAmount.setTarget(patch.lfoPulseWidthAmount);
+    this.lfoPitchAmount.setTarget(patch.lfoPitchAmount);
+    this.lfoFilterBenderAmount.setTarget(patch.lfoFilterAmount);
+    this.benderLfoModAmount.setTarget(patch.benderLfoModAmount);
+    this.pitchBendAmount.setTarget(patch.pitchBendAmount);
   }
 }
 

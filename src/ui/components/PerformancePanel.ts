@@ -57,7 +57,7 @@ export class PerformancePanel {
     area.append(
       createSlider({ label: 'VCO', min: -1, max: 1, step: 0.01, value: 0, className: 'horizontal-slider bender-slider', onChange: onPitchBend }),
       createSlider({ label: 'VCF', min: 0, max: 1, step: 0.01, value: this.patch.lfoFilterAmount, className: 'horizontal-slider bender-slider', onChange: (value) => this.setPatch('lfoFilterAmount', value) }),
-      createSlider({ label: 'LFO MOD', min: 0, max: 12, step: 0.1, value: this.patch.lfoPitchAmount, className: 'horizontal-slider bender-slider', onChange: (value) => this.setPatch('lfoPitchAmount', value) }),
+      createSlider({ label: 'LFO MOD', min: 0, max: 12, step: 0.1, value: this.patch.benderLfoModAmount, className: 'horizontal-slider bender-slider', onChange: (value) => this.setPatch('benderLfoModAmount', value) }),
       this.createBenderLever(),
     );
     return area;
@@ -68,6 +68,7 @@ export class PerformancePanel {
     lever.className = 'bender-lever';
     const handle = document.createElement('span');
     handle.className = 'bender-handle';
+    // Placeholder control: this visual lever is not yet a pointer-driven performance controller.
     lever.append(handle);
     return lever;
   }
@@ -75,6 +76,7 @@ export class PerformancePanel {
   private createSwitchPlaceholders(): HTMLElement {
     const switches = document.createElement('div');
     switches.className = 'performance-switches';
+    // Placeholder controls: portamento mode and transpose mode are visual until mode parameters exist.
     switches.append(
       this.createPlaceholder('PORTA MODE'),
       this.createPlaceholder('TRANSPOSE'),

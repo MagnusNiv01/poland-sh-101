@@ -21,6 +21,7 @@ export type PolandSh101Patch = {
   filterLfoAmount: number;
   filterKeyboardTracking: number;
   vcaMode: VcaMode;
+  vcaLevel: number;
   envAttack: number;
   envDecay: number;
   envSustain: number;
@@ -31,6 +32,7 @@ export type PolandSh101Patch = {
   lfoPitchAmount: number;
   lfoFilterAmount: number;
   lfoPulseWidthAmount: number;
+  benderLfoModAmount: number;
   portamentoTime: number;
   pitchBendAmount: number;
   transpose: number;
@@ -53,6 +55,7 @@ export const defaultPatch: PolandSh101Patch = {
   filterLfoAmount: 0,
   filterKeyboardTracking: 0.28,
   vcaMode: 'envelope',
+  vcaLevel: 0.85,
   envAttack: 0.008,
   envDecay: 0.22,
   envSustain: 0.55,
@@ -62,7 +65,8 @@ export const defaultPatch: PolandSh101Patch = {
   lfoWaveform: 'triangle',
   lfoPitchAmount: 0,
   lfoFilterAmount: 0.15,
-  lfoPulseWidthAmount: 0.12,
+  lfoPulseWidthAmount: 0.15,
+  benderLfoModAmount: 0,
   portamentoTime: 0.015,
   pitchBendAmount: 2,
   transpose: 0,
