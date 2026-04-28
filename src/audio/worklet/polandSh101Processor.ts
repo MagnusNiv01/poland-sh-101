@@ -98,7 +98,7 @@ class PolandSh101Processor extends AudioWorkletProcessor {
       const subNarrow = patch.subMode === 'twoOctavesDownNarrow';
       const sub = this.sub.next(frequency, sampleRate, subDivisor, subNarrow) * this.subLevel.next();
       const noise = this.noise.nextWhite() * this.noiseLevel.next();
-      const mixed = (saw + pulse + sub + noise) * 0.28;
+      const mixed = this.softClip((saw + pulse + sub + noise) * 0.32);
 
       const cutoffBase = this.cutoffFromControl(patch.filterCutoff);
       const keyTrack = Math.max(0, frequency - 130) * this.filterKeyTracking.next() * 8;
@@ -107,7 +107,7 @@ class PolandSh101Processor extends AudioWorkletProcessor {
       this.cutoff.setTarget(cutoffBase + keyTrack + envCutoff + lfoCutoff);
       const filtered = this.filter.process(mixed, this.cutoff.next(), this.resonance.next(), sampleRate);
       const amp = patch.vcaMode === 'gate' ? (this.gate ? 1 : 0) : env;
-      const shaped = this.softClip(filtered * amp * this.vcaLevel.next() * this.masterVolume.next() * this.noteVelocity * 2.1);
+      const shaped = this.softClip(filtered * amp * this.vcaLevel.next() * this.masterVolume.next() * this.noteVelocity * 1.9);
 
       left[i] = shaped;
       right[i] = shaped;

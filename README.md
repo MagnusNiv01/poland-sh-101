@@ -65,7 +65,7 @@ Use a modern Chromium, Firefox, or Safari browser with AudioWorklet support. Aud
 
 The synth runs fully in the browser. The main thread owns the `AudioContext`, loads an `AudioWorklet`, and sends strongly typed note, pitch bend, and patch messages.
 
-The AudioWorklet generates audio sample-by-sample. DSP is split into small modules for oscillators, envelope, filter, LFO, smoothing, and noise generation. Saw and pulse oscillators use simple polyBLEP correction for cleaner high notes. The filter is a lightweight resonant state-variable low-pass model with smoothed cutoff and resonance modulation.
+The AudioWorklet generates audio sample-by-sample. DSP is split into small modules for oscillators, envelope, filter, LFO, smoothing, and noise generation. Saw, pulse, and sub oscillators use PolyBLEP edge correction for cleaner high notes and smoother PWM. The filter is a cascaded TPT state-variable low-pass model with smoothed cutoff/resonance modulation, mild drive, and controlled feedback.
 
 The synth output is routed through an external device chain before reaching the browser output:
 
@@ -97,8 +97,8 @@ Some visible panel controls are intentionally visual placeholders in this versio
 
 ## Known Limitations
 
-- Oscillators are cleaner than naive waveforms but are not full production-grade band-limited oscillators.
-- The filter is stable and useful, but not a detailed analog SH-style model.
+- Oscillators use PolyBLEP correction but are not full wavetable or minBLEP oscillators.
+- The filter is more synth-like than a simple digital low-pass, but it is not a component-level analog SH-style model.
 - Chorus, Flanger, Echo, and Reverb are simple Web Audio implementations, not detailed vintage effect models.
 - Flanger phase controls the relative stereo modulation amount and polarity in this first version, not a full independent second LFO phase offset.
 - Reverb impulse responses are generated in code and do not model a specific physical space.
@@ -110,8 +110,8 @@ Some visible panel controls are intentionally visual placeholders in this versio
 
 ## Roadmap
 
-- More accurate analog-style filter
-- Higher-quality band-limited oscillators
+- More accurate component-style analog filter behavior
+- Wavetable or minBLEP oscillator options
 - Better PWM behavior
 - Additional external devices such as distortion, compressor, EQ, and phaser
 - More advanced stereo flanger phase handling
