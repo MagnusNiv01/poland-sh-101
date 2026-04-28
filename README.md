@@ -110,6 +110,21 @@ type StudioSnapshot = {
 
 The first instrument id is `poland-sh101`. External devices are saved by stable device id, not display name or rack order. Unknown saved device ids are ignored when loading.
 
+The dropdown always includes ten read-only factory presets:
+
+- INIT 101
+- SUB BASS
+- ACID BASS
+- PWM LEAD
+- RESO PLUCK
+- NOISE HAT
+- LASER ZAP
+- DARK DRONE
+- SPACE ECHO LEAD
+- ORGANISH SQUARE
+
+Factory presets are prefixed with `F -` in the selector/display. User presets are stored separately in localStorage and appear under the user group. `LOAD` works for both factory and user presets. `SAVE` on a factory preset creates a new user preset copy instead of overwriting the factory preset. `DELETE` is disabled for factory presets.
+
 External audio devices implement a serializable contract with stable `id`, `deviceType`, `stateVersion`, `includeInPresets`, `getSettings()`, and `updateSettings()`. Future devices become preset-compatible by implementing that contract and being added to the app's device registry; the preset manager does not import Chorus, Flanger, Echo, or Reverb directly.
 
 ## Placeholders

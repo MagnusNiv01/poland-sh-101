@@ -12,6 +12,7 @@ export class PresetControlDevicePanel {
   private selectedPresetId = '';
   private readonly display: HTMLElement;
   private readonly select: HTMLSelectElement;
+  private readonly deleteButton: HTMLButtonElement;
 
   constructor(private readonly options: PresetControlDevicePanelOptions) {
     this.element = document.createElement('section');
@@ -34,12 +35,11 @@ export class PresetControlDevicePanel {
 
     const buttons = document.createElement('div');
     buttons.className = 'preset-buttons';
-    buttons.append(
-      this.createButton('NEW', () => this.createNewPreset()),
-      this.createButton('SAVE', () => this.savePreset()),
-      this.createButton('LOAD', () => this.loadPreset()),
-      this.createButton('DELETE', () => this.deletePreset()),
-    );
+    const newButton = this.createButton('NEW', () => this.createNewPreset());
+    const saveButton = this.createButton('SAVE', () => this.savePreset());
+    const loadButton = this.createButton('LOAD', () => this.loadPreset());
+    this.deleteButton = this.createButton('DELETE', () => this.deletePreset());
+    buttons.append(newButton, saveButton, loadButton, this.deleteButton);
 
     const body = document.createElement('div');
     body.className = 'preset-control-body';
@@ -69,7 +69,7 @@ export class PresetControlDevicePanel {
   }
 
   private savePreset(): void {
-    if (!this.selectedPresetId) {
+    if (!this.selectedPresetId || this.options.manager.isFactoryPreset(this.selectedPresetId)) {
       this.createNewPreset();
       return;
     }
@@ -92,7 +92,7 @@ export class PresetControlDevicePanel {
 
   private deletePreset(): void {
     const preset = this.getSelectedPreset();
-    if (!preset || !window.confirm(`Delete preset "${preset.name}"?`)) {
+    if (!preset || preset.source === 'factory' || !window.confirm(`Delete preset "${preset.name}"?`)) {
       return;
     }
     this.options.manager.deletePreset(preset.id);
@@ -111,20 +111,18 @@ export class PresetControlDevicePanel {
   }
 
   private refreshPresetList(): void {
-    const presets = this.options.manager.listPresets();
+    const factoryPresets = this.options.manager.listFactoryPresets();
+    const userPresets = this.options.manager.listUserPresets();
+    const presets = [...factoryPresets, ...userPresets];
     this.select.replaceChildren();
 
     const empty = document.createElement('option');
     empty.value = '';
-    empty.textContent = presets.length > 0 ? 'Select preset' : 'No presets';
+    empty.textContent = 'Select preset';
     this.select.append(empty);
 
-    for (const preset of presets) {
-      const option = document.createElement('option');
-      option.value = preset.id;
-      option.textContent = preset.name;
-      this.select.append(option);
-    }
+    this.appendPresetGroup('FACTORY', factoryPresets);
+    this.appendPresetGroup('USER', userPresets);
 
     if (this.selectedPresetId && presets.some((preset) => preset.id === this.selectedPresetId)) {
       this.select.value = this.selectedPresetId;
@@ -133,9 +131,26 @@ export class PresetControlDevicePanel {
       this.select.value = '';
     }
     this.updateDisplay();
+    this.deleteButton.disabled = this.selectedPresetId === '' || this.options.manager.isFactoryPreset(this.selectedPresetId);
+  }
+
+  private appendPresetGroup(label: string, presets: StoredPreset[]): void {
+    if (presets.length === 0) {
+      return;
+    }
+    const group = document.createElement('optgroup');
+    group.label = label;
+    for (const preset of presets) {
+      const option = document.createElement('option');
+      option.value = preset.id;
+      option.textContent = `${preset.source === 'factory' ? 'F - ' : 'USER: '}${preset.name}`;
+      group.append(option);
+    }
+    this.select.append(group);
   }
 
   private updateDisplay(): void {
-    this.display.textContent = this.getSelectedPreset()?.name ?? 'INIT';
+    const preset = this.getSelectedPreset();
+    this.display.textContent = preset ? `${preset.source === 'factory' ? 'F - ' : ''}${preset.name}` : 'INIT';
   }
 }

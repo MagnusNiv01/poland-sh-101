@@ -40,6 +40,7 @@ function validateStoredPreset(value: unknown): StoredPreset | null {
     name: value.name,
     createdAt: value.createdAt,
     updatedAt: value.updatedAt,
+    source: value.source === 'factory' ? 'factory' : 'user',
     snapshot,
   };
 }

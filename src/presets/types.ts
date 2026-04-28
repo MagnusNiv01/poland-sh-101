@@ -22,6 +22,7 @@ export type StoredPreset = {
   name: string;
   createdAt: string;
   updatedAt: string;
+  source?: 'factory' | 'user';
   snapshot: StudioSnapshot;
 };
 

@@ -1,15 +1,31 @@
 import { loadPresetCollection, savePresetCollection } from './presetStorage';
+import { factoryPresets } from './factoryPresets';
 import type { StoredPreset, StoredPresetCollection, StudioSnapshot } from './types';
 
 export class PresetManager {
   private collection: StoredPresetCollection = loadPresetCollection();
 
   listPresets(): StoredPreset[] {
-    return [...this.collection.presets].sort((a, b) => a.name.localeCompare(b.name));
+    return [
+      ...factoryPresets,
+      ...this.collection.presets.map((preset) => ({ ...preset, source: 'user' as const })),
+    ];
+  }
+
+  listFactoryPresets(): StoredPreset[] {
+    return [...factoryPresets];
+  }
+
+  listUserPresets(): StoredPreset[] {
+    return this.collection.presets.map((preset) => ({ ...preset, source: 'user' as const }));
   }
 
   getPreset(id: string): StoredPreset | undefined {
-    return this.collection.presets.find((preset) => preset.id === id);
+    return this.listPresets().find((preset) => preset.id === id);
+  }
+
+  isFactoryPreset(id: string): boolean {
+    return factoryPresets.some((preset) => preset.id === id);
   }
 
   createPreset(name: string, snapshot: StudioSnapshot): StoredPreset {
@@ -17,6 +33,7 @@ export class PresetManager {
     const preset: StoredPreset = {
       id: createPresetId(),
       name: name.trim(),
+      source: 'user',
       createdAt: now,
       updatedAt: now,
       snapshot,
@@ -30,8 +47,11 @@ export class PresetManager {
   }
 
   savePreset(id: string, snapshot: StudioSnapshot): StoredPreset | undefined {
+    if (this.isFactoryPreset(id)) {
+      return undefined;
+    }
     const existing = this.getPreset(id);
-    if (!existing) {
+    if (!existing || existing.source === 'factory') {
       return undefined;
     }
     const updated: StoredPreset = {
@@ -48,6 +68,9 @@ export class PresetManager {
   }
 
   deletePreset(id: string): void {
+    if (this.isFactoryPreset(id)) {
+      return;
+    }
     this.collection = {
       ...this.collection,
       presets: this.collection.presets.filter((preset) => preset.id !== id),
