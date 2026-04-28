@@ -545,7 +545,7 @@ input {
   display: grid;
   grid-template-columns: 292px minmax(0, 1fr) 26px;
   gap: 10px;
-  align-items: start;
+  align-items: stretch;
   padding: 10px 11px 12px;
   background:
     linear-gradient(180deg, #252725 0 8px, #3a3c39 8px 16px, #303330 16px),
@@ -759,8 +759,8 @@ input {
 
 .keyboard {
   position: relative;
-  align-self: start;
-  height: var(--keybed-height);
+  align-self: stretch;
+  min-height: var(--keybed-height);
   width: 100%;
   margin: 0;
   padding: 0 9px 9px;
@@ -812,7 +812,7 @@ input {
   align-items: flex-end;
   justify-content: center;
   grid-column: calc(var(--white-index) + 1);
-  height: var(--white-key-height);
+  height: 100%;
   padding-bottom: 7px;
   background:
     linear-gradient(90deg, rgba(0, 0, 0, 0.2), transparent 9%, transparent 91%, rgba(0, 0, 0, 0.22)),
@@ -831,7 +831,7 @@ input {
   top: 0;
   z-index: 4;
   width: calc((100% / var(--white-key-count)) * 0.54);
-  height: var(--black-key-height);
+  height: 62%;
   transform: translateX(-50%);
   border-color: #020202;
   background:
