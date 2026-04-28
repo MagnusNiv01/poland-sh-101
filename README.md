@@ -114,7 +114,7 @@ The dropdown always includes ten read-only factory presets:
 
 - INIT 101
 - SUB BASS
-- ACID BASS
+- MAGNUS BASS
 - PWM LEAD
 - RESO PLUCK
 - NOISE HAT
