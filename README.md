@@ -2,7 +2,7 @@
 
 Poland SH-101 is a local/private SH-101-inspired browser synthesizer. It follows the structure and control language of a classic monophonic hardware synth while using original TypeScript, CSS, and UI elements. It is not an official Roland product and does not use official Roland logos or assets.
 
-<img width="1815" height="1162" alt="image" src="https://github.com/user-attachments/assets/844240b7-d605-48c4-9d1d-6dad49e93f4f" />
+<img width="1649" height="1175" alt="image" src="https://github.com/user-attachments/assets/1aa52bf5-6ef8-4b2f-9555-8c4d6ae9f082" />
 
 ## Current Features
 
