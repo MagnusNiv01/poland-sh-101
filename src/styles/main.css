@@ -758,6 +758,128 @@ input {
     var(--red);
 }
 
+.device-rack {
+  width: min(1640px, calc(100vw - 24px));
+  margin: 12px auto 24px;
+  padding: 10px;
+  border: 2px solid #070807;
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 44px),
+    #232624;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.device-rack-title {
+  margin-bottom: 8px;
+  color: var(--engrave-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.device-rack-devices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.device-shell {
+  border: 1px solid #080908;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 26px),
+    #343834;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.device-shell.is-enabled {
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(229, 109, 36, 0.32);
+}
+
+.device-header {
+  display: grid;
+  grid-template-columns: 1fr 72px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid #111;
+  background: #181a18;
+}
+
+.device-header h2 {
+  margin: 0;
+  color: var(--engrave);
+  font-size: 0.86rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.device-toggle,
+.device-mini-toggle {
+  min-height: 28px;
+  border: 1px solid #070807;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 55%), #20231f;
+  color: var(--engrave-muted);
+  cursor: pointer;
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.device-shell.is-enabled .device-toggle,
+.device-mini-toggle.is-on {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 55%), var(--orange);
+  color: #fff6e8;
+}
+
+.device-controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+}
+
+.device-control {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  color: var(--engrave);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.device-control input[type="range"] {
+  width: 100%;
+  accent-color: var(--orange);
+}
+
+.device-select {
+  width: 100%;
+  min-height: 26px;
+  border: 1px solid #070807;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 55%), #20231f;
+  color: var(--engrave);
+  font: inherit;
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.device-control-value {
+  color: var(--engrave-muted);
+  font-size: 0.52rem;
+  text-align: right;
+  opacity: 0.72;
+}
+
 @media (max-width: 1260px) {
   body {
     min-width: 1260px;

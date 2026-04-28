@@ -18,6 +18,8 @@ Poland SH-101 is a local/private SH-101-inspired browser synthesizer. It follows
 - Computer keyboard note input using `A W S E D F T G Y H U J K`
 - Parameter smoothing for important continuous controls
 - Soft clipping at the output for safer gain staging
+- External device rack with typed Chorus, Flanger, Echo, and Reverb effect modules
+- Plug-and-play external device chain for adding future browser audio effects
 
 ## Installation
 
@@ -65,6 +67,23 @@ The synth runs fully in the browser. The main thread owns the `AudioContext`, lo
 
 The AudioWorklet generates audio sample-by-sample. DSP is split into small modules for oscillators, envelope, filter, LFO, smoothing, and noise generation. Saw and pulse oscillators use simple polyBLEP correction for cleaner high notes. The filter is a lightweight resonant state-variable low-pass model with smoothed cutoff and resonance modulation.
 
+The synth output is routed through an external device chain before reaching the browser output:
+
+```text
+AudioWorklet synth -> ExternalDeviceChain -> Chorus -> Flanger -> Echo -> Reverb -> AudioContext destination
+```
+
+External devices live outside the SH-101 patch model. Each device exposes typed settings, an input/output node pair, a bypass-safe enabled state, and a small UI panel in the external rack below the synth.
+
+## External Devices
+
+- Chorus: Web Audio chorus using modulated delay lines, wet/dry mix, feedback, delay time, depth, rate, and stereo width.
+- Flanger: Web Audio flanger using very short modulated delay lines, wet/dry mix, feedback, stereo width, polarity, and phase-like stereo modulation offset.
+- Echo: Web Audio delay using delay lines, feedback, tone filtering, wet/dry mix, stereo spread, and ping-pong routing.
+- Reverb: Web Audio convolution reverb with generated stereo impulse responses, pre-delay, tone, size, damping, decay, and wet/dry mix.
+
+All external devices default to off, so the synth starts dry until an effect is enabled.
+
 ## Placeholders
 
 Some visible panel controls are intentionally visual placeholders in this version:
@@ -74,14 +93,19 @@ Some visible panel controls are intentionally visual placeholders in this versio
 - Bender lever visual
 - Portamento mode switch
 - Transpose mode switch
+- Echo tempo sync setting
 
 ## Known Limitations
 
 - Oscillators are cleaner than naive waveforms but are not full production-grade band-limited oscillators.
 - The filter is stable and useful, but not a detailed analog SH-style model.
+- Chorus, Flanger, Echo, and Reverb are simple Web Audio implementations, not detailed vintage effect models.
+- Flanger phase controls the relative stereo modulation amount and polarity in this first version, not a full independent second LFO phase offset.
+- Reverb impulse responses are generated in code and do not model a specific physical space.
 - Sequencer, arpeggiator, and hold behavior are not implemented yet.
 - Portamento and legato behavior are basic.
 - MIDI input and patch persistence are not implemented yet.
+- External device settings are not persisted yet.
 - Desktop and laptop layouts are prioritized over mobile.
 
 ## Roadmap
@@ -89,6 +113,10 @@ Some visible panel controls are intentionally visual placeholders in this versio
 - More accurate analog-style filter
 - Higher-quality band-limited oscillators
 - Better PWM behavior
+- Additional external devices such as distortion, compressor, EQ, and phaser
+- More advanced stereo flanger phase handling
+- Higher-quality reverb algorithms and smoother impulse regeneration
+- External device preset storage and chain reordering UI
 - MIDI input
 - Patch save/load
 - Functional sequencer

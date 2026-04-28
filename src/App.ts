@@ -2,6 +2,7 @@ import { keyToNote } from './input/computerKeyboard';
 import { SynthController } from './audio/SynthController';
 import { clonePatch, defaultPatch } from './synth/patch';
 import { Keyboard } from './ui/components/Keyboard';
+import { DeviceRack } from './ui/components/devices/DeviceRack';
 import { PerformancePanel } from './ui/components/PerformancePanel';
 import { SynthPanel } from './ui/components/SynthPanel';
 
@@ -22,6 +23,9 @@ export class App {
   render(): void {
     const shell = document.createElement('main');
     shell.className = 'app-shell';
+    const deviceRack = new DeviceRack({
+      onDeviceChange: (id, settings) => this.controller.updateDeviceSettings(id, settings),
+    });
 
     this.synthPanel = new SynthPanel({
       patch: this.patch,
@@ -50,7 +54,7 @@ export class App {
     keyboardPanel.append(this.performancePanel.element, this.keyboard.element);
 
     shell.append(this.synthPanel.element, keyboardPanel);
-    this.root.replaceChildren(shell);
+    this.root.replaceChildren(shell, deviceRack.element);
     this.bindComputerKeyboard();
     this.bindFirstStart(shell);
   }

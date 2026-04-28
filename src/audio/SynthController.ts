@@ -1,5 +1,6 @@
 import { noteToFrequency } from '../input/computerKeyboard';
 import { clonePatch, type PolandSh101Patch } from '../synth/patch';
+import type { ExternalDeviceId, ExternalDeviceSettingsMap } from './devices/types';
 import { AudioEngine } from './AudioEngine';
 
 export class SynthController {
@@ -40,6 +41,13 @@ export class SynthController {
 
   pitchBend(value: number): void {
     this.audio.post({ type: 'pitchBend', value });
+  }
+
+  updateDeviceSettings<TId extends ExternalDeviceId>(
+    id: TId,
+    settings: Partial<ExternalDeviceSettingsMap[TId]>,
+  ): void {
+    this.audio.updateDeviceSettings(id, settings);
   }
 
   allNotesOff(): void {
