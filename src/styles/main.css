@@ -404,6 +404,7 @@ input {
 .switch-option:has(input:focus-visible)::before,
 .placeholder-switch:focus-visible,
 .performance-switch:focus-visible,
+.bender-lever:focus-visible,
 .piano-key:focus-visible,
 .slider-control input:focus-visible,
 .knob-input:focus-visible {
@@ -563,10 +564,10 @@ input {
 
 .performance-panel {
   display: grid;
-  grid-template-rows: auto 58px 1fr 30px;
-  gap: 8px;
+  grid-template-rows: auto auto auto 34px;
+  gap: 9px;
   min-height: var(--keybed-height);
-  padding: 8px;
+  padding: 8px 9px 9px;
   border: 1px solid #090909;
   background: linear-gradient(180deg, #3e413d, #292b29);
   box-shadow:
@@ -575,7 +576,7 @@ input {
 }
 
 .performance-panel h2 {
-  margin: -8px -8px 0;
+  margin: -8px -9px 0;
   padding: 5px 7px 4px;
   border-bottom: 1px solid #111;
   background: #181918;
@@ -589,74 +590,171 @@ input {
 .performance-knobs {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  padding: 0 4px;
+  gap: 18px;
+  align-items: start;
+  padding: 3px 13px 0;
+}
+
+.performance-knobs .knob-control {
+  min-width: 0;
+  gap: 5px;
+}
+
+.performance-knobs .knob-input {
+  width: 54px;
 }
 
 .bender-area {
   display: grid;
-  grid-template-columns: 92px 92px 1fr;
-  grid-template-rows: repeat(3, 35px);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(3, 32px) 46px;
   gap: 6px;
-  align-items: stretch;
+  padding: 2px 1px 0;
 }
 
-.bender-slider {
-  min-height: 35px;
-  grid-column: 1 / 3;
-  grid-template-columns: 48px 1fr 34px;
-  grid-template-rows: 1fr;
+.bender-amount {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 50px;
   align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 4px 7px;
+  border: 1px solid rgba(8, 8, 8, 0.86);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 60%),
+    rgba(12, 13, 12, 0.22);
+  color: var(--engrave);
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bender-amount-label {
+  white-space: nowrap;
+}
+
+.bender-amount input {
+  width: 100%;
+  accent-color: var(--orange);
+}
+
+.bender-amount-value {
+  color: var(--engrave-muted);
+  font-size: 0.5rem;
+  text-align: right;
+  white-space: nowrap;
+  opacity: 0.82;
 }
 
 .bender-lever {
-  grid-column: 3;
-  grid-row: 1 / 4;
   position: relative;
   display: grid;
   align-items: center;
   justify-items: center;
-  min-height: 100%;
+  min-height: 46px;
   border: 1px solid #090909;
+  padding: 0;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.06), transparent 16%, transparent 84%, rgba(0, 0, 0, 0.2)),
-    linear-gradient(180deg, transparent 0 47%, rgba(255, 255, 255, 0.13) 47% 53%, transparent 53%),
-    #161716;
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.32)),
+    linear-gradient(180deg, #21231f, #111211);
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.bender-lever::before {
+  content: "BENDER";
+  position: absolute;
+  left: 8px;
+  top: 5px;
+  color: var(--engrave-muted);
+  font-size: 0.46rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.bender-lever::after {
+  content: "";
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: 50%;
+  height: 6px;
+  border: 1px solid #050505;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, transparent 0 49%, rgba(255, 255, 255, 0.22) 49% 51%, transparent 51%),
+    #070807;
+  transform: translateY(-50%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.bender-center {
+  position: absolute;
+  top: 13px;
+  bottom: 8px;
+  width: 1px;
+  background: rgba(240, 238, 228, 0.22);
 }
 
 .bender-handle {
-  width: 76px;
-  height: 32px;
+  position: relative;
+  z-index: 1;
+  width: 36px;
+  height: 22px;
   margin: 0;
   border: 1px solid #050505;
-  border-radius: 2px;
+  border-radius: 3px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 44%),
-    #111;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 46%),
+    linear-gradient(90deg, #070807, #242622 50%, #070807);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.58);
+  transform: translateX(var(--bend-position));
+  transition: transform 80ms ease-out;
 }
 
 .performance-switches {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
+  gap: 7px;
 }
 
 .performance-switch {
-  min-height: 30px;
+  position: relative;
+  min-height: 34px;
   border: 1px solid #080808;
-  background: #1e201e;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 48%),
+    #1e201e;
   color: var(--engrave-muted);
   cursor: pointer;
   font-size: 0.56rem;
   font-weight: 900;
   letter-spacing: 0.05em;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 -3px rgba(0, 0, 0, 0.24);
+}
+
+.performance-switch::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 7px;
+  width: 14px;
+  height: 7px;
+  border: 1px solid #050505;
+  border-radius: 5px;
+  background: #090a09;
 }
 
 .performance-switch.is-on {
   background: var(--orange);
   color: #fff5e8;
+}
+
+.performance-switch.is-on::before {
+  background: #fff5e8;
 }
 
 .keyboard {

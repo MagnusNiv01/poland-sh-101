@@ -67,7 +67,7 @@ export const defaultPatch: PolandSh101Patch = {
   lfoFilterAmount: 0.15,
   lfoPulseWidthAmount: 0.15,
   benderLfoModAmount: 0,
-  portamentoTime: 0.015,
+  portamentoTime: 0,
   pitchBendAmount: 2,
   transpose: 0,
 };

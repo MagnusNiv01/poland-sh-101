@@ -1,6 +1,5 @@
 import type { PolandSh101Patch } from '../../synth/patch';
 import { createKnob } from './Knob';
-import { createSlider } from './Slider';
 
 type PerformancePanelOptions = {
   patch: PolandSh101Patch;
@@ -55,30 +54,134 @@ export class PerformancePanel {
     const area = document.createElement('div');
     area.className = 'bender-area';
     area.append(
-      createSlider({ label: 'VCO', min: -1, max: 1, step: 0.01, value: 0, className: 'horizontal-slider bender-slider', onChange: onPitchBend }),
-      createSlider({ label: 'VCF', min: 0, max: 1, step: 0.01, value: this.patch.lfoFilterAmount, className: 'horizontal-slider bender-slider', onChange: (value) => this.setPatch('lfoFilterAmount', value) }),
-      createSlider({ label: 'LFO MOD', min: 0, max: 12, step: 0.1, value: this.patch.benderLfoModAmount, className: 'horizontal-slider bender-slider', onChange: (value) => this.setPatch('benderLfoModAmount', value) }),
-      this.createBenderLever(),
+      this.createBenderAmountSlider({
+        label: 'VCO',
+        min: -1,
+        max: 1,
+        step: 0.01,
+        value: 0,
+        format: (value) => (Math.abs(value) < 0.005 ? 'CENTER' : `${value > 0 ? '+' : ''}${Math.round(value * 100)}%`),
+        onChange: onPitchBend,
+      }),
+      this.createBenderAmountSlider({
+        label: 'VCF',
+        min: 0,
+        max: 1,
+        step: 0.01,
+        value: this.patch.lfoFilterAmount,
+        format: (value) => `${Math.round(value * 100)}%`,
+        onChange: (value) => this.setPatch('lfoFilterAmount', value),
+      }),
+      this.createBenderAmountSlider({
+        label: 'LFO MOD',
+        min: 0,
+        max: 12,
+        step: 0.1,
+        value: this.patch.benderLfoModAmount,
+        format: (value) => value.toFixed(1).replace(/\.0$/, ''),
+        onChange: (value) => this.setPatch('benderLfoModAmount', value),
+      }),
+      this.createBenderLever(onPitchBend),
     );
     return area;
   }
 
-  private createBenderLever(): HTMLElement {
-    const lever = document.createElement('div');
+  private createBenderAmountSlider(options: {
+    label: string;
+    min: number;
+    max: number;
+    step: number;
+    value: number;
+    format: (value: number) => string;
+    onChange: (value: number) => void;
+  }): HTMLElement {
+    const wrap = document.createElement('label');
+    wrap.className = 'bender-amount';
+
+    const label = document.createElement('span');
+    label.className = 'bender-amount-label';
+    label.textContent = options.label;
+
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = String(options.min);
+    input.max = String(options.max);
+    input.step = String(options.step);
+    input.value = String(options.value);
+
+    const value = document.createElement('span');
+    value.className = 'bender-amount-value';
+    const setValue = (nextValue: number) => {
+      value.textContent = options.format(nextValue);
+    };
+    setValue(options.value);
+
+    input.addEventListener('input', () => {
+      const nextValue = Number(input.value);
+      setValue(nextValue);
+      options.onChange(nextValue);
+    });
+
+    wrap.append(label, input, value);
+    return wrap;
+  }
+
+  private createBenderLever(onPitchBend: (value: number) => void): HTMLElement {
+    const lever = document.createElement('button');
+    lever.type = 'button';
     lever.className = 'bender-lever';
     const handle = document.createElement('span');
     handle.className = 'bender-handle';
-    // Placeholder control: this visual lever is not yet a pointer-driven performance controller.
-    lever.append(handle);
+    const center = document.createElement('span');
+    center.className = 'bender-center';
+    const setBend = (value: number) => {
+      const clamped = Math.min(1, Math.max(-1, value));
+      handle.style.setProperty('--bend-position', `${clamped * 42}px`);
+      onPitchBend(clamped);
+    };
+    const release = () => {
+      setBend(0);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', release);
+      window.removeEventListener('pointercancel', release);
+    };
+    const move = (event: PointerEvent) => {
+      const rect = lever.getBoundingClientRect();
+      const value = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      setBend(value);
+    };
+    lever.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      lever.setPointerCapture(event.pointerId);
+      move(event);
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', release);
+      window.addEventListener('pointercancel', release);
+    });
+    lever.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setBend(-1);
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setBend(1);
+      }
+    });
+    lever.addEventListener('keyup', () => setBend(0));
+    lever.setAttribute('aria-label', 'Pitch bend lever');
+    handle.style.setProperty('--bend-position', '0px');
+    lever.append(center, handle);
     return lever;
   }
 
   private createSwitchPlaceholders(): HTMLElement {
     const switches = document.createElement('div');
     switches.className = 'performance-switches';
-    // Placeholder controls: portamento mode and transpose mode are visual until mode parameters exist.
     switches.append(
+      // TODO: Map PORTA MODE to a typed portamento mode such as off, always, or legato.
       this.createPlaceholder('PORTA MODE'),
+      // TODO: Map TRANSPOSE to a typed transpose mode or octave switch.
       this.createPlaceholder('TRANSPOSE'),
     );
     return switches;
