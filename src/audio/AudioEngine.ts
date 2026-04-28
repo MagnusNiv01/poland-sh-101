@@ -4,6 +4,7 @@ import { EchoDevice } from './devices/echo/EchoDevice';
 import { ExternalDeviceChain } from './devices/ExternalDeviceChain';
 import { FlangerDevice } from './devices/flanger/FlangerDevice';
 import { ReverbDevice } from './devices/reverb/ReverbDevice';
+import type { SerializableDevice } from './devices/SerializableDevice';
 import type { ExternalDeviceId, ExternalDeviceSettingsMap } from './devices/types';
 import workletUrl from './worklet/polandSh101Processor.ts?worker&url';
 
@@ -60,6 +61,10 @@ export class AudioEngine {
       ...settings,
     };
     this.deviceChain?.updateDeviceSettings(id, settings);
+  }
+
+  getSerializableDevices(): SerializableDevice[] {
+    return this.deviceChain?.getSerializableDevices() ?? [];
   }
 
   private applyPendingDeviceSettings(): void {

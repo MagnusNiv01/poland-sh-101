@@ -18,6 +18,7 @@ Poland SH-101 is a local/private SH-101-inspired browser synthesizer. It follows
 - Computer keyboard note input using `A W S E D F T G Y H U J K`
 - Parameter smoothing for important continuous controls
 - Soft clipping at the output for safer gain staging
+- Preset Control Box for localStorage-based complete setup save/load
 - External device rack with typed Chorus, Flanger, Echo, and Reverb effect modules
 - Plug-and-play external device chain for adding future browser audio effects
 
@@ -84,6 +85,33 @@ External devices live outside the SH-101 patch model. Each device exposes typed 
 
 All external devices default to off, so the synth starts dry until an effect is enabled.
 
+## Presets
+
+The external rack includes a Preset Control Box. It is a control module, not an audio device, so it is not inserted into the audio signal chain and is not included inside saved presets.
+
+Presets are stored in `localStorage` under `poland-sh101.presets.v1`. Each preset stores a versioned studio snapshot:
+
+```ts
+type StudioSnapshot = {
+  version: number;
+  activeInstrumentId: string;
+  instruments: Record<string, {
+    instrumentType: string;
+    stateVersion: number;
+    patch: unknown;
+  }>;
+  devices: Record<string, {
+    deviceType: string;
+    stateVersion: number;
+    settings: unknown;
+  }>;
+};
+```
+
+The first instrument id is `poland-sh101`. External devices are saved by stable device id, not display name or rack order. Unknown saved device ids are ignored when loading.
+
+External audio devices implement a serializable contract with stable `id`, `deviceType`, `stateVersion`, `includeInPresets`, `getSettings()`, and `updateSettings()`. Future devices become preset-compatible by implementing that contract and being added to the app's device registry; the preset manager does not import Chorus, Flanger, Echo, or Reverb directly.
+
 ## Placeholders
 
 Some visible panel controls are intentionally visual placeholders in this version:
@@ -105,7 +133,7 @@ Some visible panel controls are intentionally visual placeholders in this versio
 - Sequencer, arpeggiator, and hold behavior are not implemented yet.
 - Portamento and legato behavior are basic.
 - MIDI input and patch persistence are not implemented yet.
-- External device settings are not persisted yet.
+- Presets are local to the current browser profile and are not exported/imported as files yet.
 - Desktop and laptop layouts are prioritized over mobile.
 
 ## Roadmap
@@ -116,7 +144,7 @@ Some visible panel controls are intentionally visual placeholders in this versio
 - Additional external devices such as distortion, compressor, EQ, and phaser
 - More advanced stereo flanger phase handling
 - Higher-quality reverb algorithms and smoother impulse regeneration
-- External device preset storage and chain reordering UI
+- Preset export/import and chain reordering UI
 - MIDI input
 - Patch save/load
 - Functional sequencer

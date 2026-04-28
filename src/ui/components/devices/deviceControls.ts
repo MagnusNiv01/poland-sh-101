@@ -19,7 +19,11 @@ type DeviceSelectOptions<TValue extends string> = {
   onChange: (value: TValue) => void;
 };
 
-export function createDeviceSlider(options: DeviceSliderOptions): HTMLElement {
+export type DeviceValueControl<TValue> = HTMLElement & {
+  setValue(value: TValue): void;
+};
+
+export function createDeviceSlider(options: DeviceSliderOptions): DeviceValueControl<number> {
   const wrap = document.createElement('label');
   wrap.className = 'device-control';
 
@@ -47,10 +51,15 @@ export function createDeviceSlider(options: DeviceSliderOptions): HTMLElement {
   });
 
   wrap.append(label, input, value);
-  return wrap;
+  return Object.assign(wrap, {
+    setValue(nextValue: number) {
+      input.value = String(nextValue);
+      setValue(nextValue);
+    },
+  });
 }
 
-export function createDeviceSelect<TValue extends string>(options: DeviceSelectOptions<TValue>): HTMLElement {
+export function createDeviceSelect<TValue extends string>(options: DeviceSelectOptions<TValue>): DeviceValueControl<TValue> {
   const wrap = document.createElement('label');
   wrap.className = 'device-control';
 
@@ -71,20 +80,27 @@ export function createDeviceSelect<TValue extends string>(options: DeviceSelectO
   });
 
   wrap.append(label, select);
-  return wrap;
+  return Object.assign(wrap, {
+    setValue(nextValue: TValue) {
+      select.value = nextValue;
+    },
+  });
 }
 
-export function createDeviceToggle(label: string, value: boolean, onChange: (value: boolean) => void): HTMLElement {
+export function createDeviceToggle(label: string, value: boolean, onChange: (value: boolean) => void): DeviceValueControl<boolean> {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = `device-mini-toggle ${value ? 'is-on' : ''}`;
   button.textContent = label;
+  const setValue = (nextValue: boolean) => {
+    button.classList.toggle('is-on', nextValue);
+  };
   button.addEventListener('click', () => {
     const nextValue = !button.classList.contains('is-on');
-    button.classList.toggle('is-on', nextValue);
+    setValue(nextValue);
     onChange(nextValue);
   });
-  return button;
+  return Object.assign(button, { setValue });
 }
 
 function formatValue(value: number): string {

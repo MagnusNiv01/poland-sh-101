@@ -1,4 +1,5 @@
 import type { ExternalAudioDevice } from './ExternalAudioDevice';
+import type { SerializableDevice } from './SerializableDevice';
 import type { ExternalDeviceId, ExternalDeviceSettingsMap } from './types';
 
 export class ExternalDeviceChain {
@@ -19,6 +20,10 @@ export class ExternalDeviceChain {
 
   getDevice<TId extends ExternalDeviceId>(id: TId): ExternalAudioDevice<TId> | undefined {
     return this.devices.find((device) => device.id === id) as ExternalAudioDevice<TId> | undefined;
+  }
+
+  getSerializableDevices(): SerializableDevice[] {
+    return [...this.devices].filter((device) => device.includeInPresets);
   }
 
   updateDeviceSettings<TId extends ExternalDeviceId>(

@@ -4,6 +4,9 @@ import { clamp, defaultReverbSettings, type ReverbSettings } from '../types';
 export class ReverbDevice implements ExternalAudioDevice<'reverb'> {
   readonly id = 'reverb' as const;
   readonly name = 'Reverb';
+  readonly deviceType = 'reverb';
+  readonly stateVersion = 1;
+  readonly includeInPresets = true;
   readonly input: GainNode;
   readonly output: GainNode;
 
@@ -35,6 +38,16 @@ export class ReverbDevice implements ExternalAudioDevice<'reverb'> {
 
   getSettings(): ReverbSettings {
     return { ...this.settings };
+  }
+
+  getSerializableState(): ReverbSettings {
+    return this.getSettings();
+  }
+
+  applySerializableState(state: unknown): void {
+    if (state && typeof state === 'object') {
+      this.updateSettings(state as Partial<ReverbSettings>);
+    }
   }
 
   updateSettings(settings: Partial<ReverbSettings>): void {

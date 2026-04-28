@@ -5,7 +5,11 @@ type DeviceShellOptions = {
   children: HTMLElement[];
 };
 
-export function createDeviceShell(options: DeviceShellOptions): HTMLElement {
+export type DeviceShellElement = HTMLElement & {
+  setEnabled(enabled: boolean): void;
+};
+
+export function createDeviceShell(options: DeviceShellOptions): DeviceShellElement {
   const shell = document.createElement('section');
   shell.className = `device-shell ${options.enabled ? 'is-enabled' : ''}`;
 
@@ -19,10 +23,13 @@ export function createDeviceShell(options: DeviceShellOptions): HTMLElement {
   toggle.type = 'button';
   toggle.className = 'device-toggle';
   toggle.textContent = options.enabled ? 'ON' : 'OFF';
-  toggle.addEventListener('click', () => {
-    const enabled = !shell.classList.contains('is-enabled');
+  const setEnabled = (enabled: boolean) => {
     shell.classList.toggle('is-enabled', enabled);
     toggle.textContent = enabled ? 'ON' : 'OFF';
+  };
+  toggle.addEventListener('click', () => {
+    const enabled = !shell.classList.contains('is-enabled');
+    setEnabled(enabled);
     options.onEnabledChange(enabled);
   });
 
@@ -32,5 +39,5 @@ export function createDeviceShell(options: DeviceShellOptions): HTMLElement {
 
   header.append(title, toggle);
   shell.append(header, controls);
-  return shell;
+  return Object.assign(shell, { setEnabled });
 }

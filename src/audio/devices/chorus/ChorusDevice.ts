@@ -4,6 +4,9 @@ import { clamp, defaultChorusSettings, type ChorusSettings } from '../types';
 export class ChorusDevice implements ExternalAudioDevice<'chorus'> {
   readonly id = 'chorus' as const;
   readonly name = 'Chorus';
+  readonly deviceType = 'chorus';
+  readonly stateVersion = 1;
+  readonly includeInPresets = true;
   readonly input: GainNode;
   readonly output: GainNode;
 
@@ -58,6 +61,16 @@ export class ChorusDevice implements ExternalAudioDevice<'chorus'> {
 
   getSettings(): ChorusSettings {
     return { ...this.settings };
+  }
+
+  getSerializableState(): ChorusSettings {
+    return this.getSettings();
+  }
+
+  applySerializableState(state: unknown): void {
+    if (state && typeof state === 'object') {
+      this.updateSettings(state as Partial<ChorusSettings>);
+    }
   }
 
   updateSettings(settings: Partial<ChorusSettings>): void {

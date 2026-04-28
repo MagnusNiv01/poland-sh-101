@@ -4,6 +4,9 @@ import { clamp, defaultEchoSettings, type EchoSettings } from '../types';
 export class EchoDevice implements ExternalAudioDevice<'echo'> {
   readonly id = 'echo' as const;
   readonly name = 'Echo';
+  readonly deviceType = 'echo';
+  readonly stateVersion = 1;
+  readonly includeInPresets = true;
   readonly input: GainNode;
   readonly output: GainNode;
 
@@ -62,6 +65,16 @@ export class EchoDevice implements ExternalAudioDevice<'echo'> {
 
   getSettings(): EchoSettings {
     return { ...this.settings };
+  }
+
+  getSerializableState(): EchoSettings {
+    return this.getSettings();
+  }
+
+  applySerializableState(state: unknown): void {
+    if (state && typeof state === 'object') {
+      this.updateSettings(state as Partial<EchoSettings>);
+    }
   }
 
   updateSettings(settings: Partial<EchoSettings>): void {

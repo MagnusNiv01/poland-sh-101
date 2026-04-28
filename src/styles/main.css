@@ -405,6 +405,8 @@ input {
 .placeholder-switch:focus-visible,
 .performance-switch:focus-visible,
 .bender-lever:focus-visible,
+.preset-button:focus-visible,
+.preset-select:focus-visible,
 .piano-key:focus-visible,
 .slider-control input:focus-visible,
 .knob-input:focus-visible {
@@ -895,6 +897,13 @@ input {
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(229, 109, 36, 0.32);
 }
 
+.preset-control-device {
+  grid-column: 1 / -1;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 30px),
+    #2d312e;
+}
+
 .device-header {
   display: grid;
   grid-template-columns: 1fr 72px;
@@ -912,6 +921,79 @@ input {
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.preset-control-header {
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
+.preset-display {
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid #070807;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 45%),
+    #7d8a66;
+  color: #10170d;
+  font-family: "Courier New", monospace;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 1px rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.38),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.preset-control-body {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.7fr) minmax(360px, 1.3fr);
+  gap: 10px;
+  padding: 10px;
+}
+
+.preset-select {
+  min-height: 34px;
+  border: 1px solid #070807;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 55%), #20231f;
+  color: var(--engrave);
+  font: inherit;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.preset-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.preset-button {
+  min-height: 34px;
+  border: 1px solid #070807;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 50%),
+    #1f211e;
+  color: var(--engrave-muted);
+  cursor: pointer;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 -3px rgba(0, 0, 0, 0.28);
+}
+
+.preset-button:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45);
 }
 
 .device-toggle,

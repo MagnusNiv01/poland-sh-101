@@ -1,6 +1,8 @@
 import type { ExternalDeviceId, ExternalDeviceSettingsMap } from './types';
+import type { SerializableDevice } from './SerializableDevice';
 
-export interface ExternalAudioDevice<TId extends ExternalDeviceId = ExternalDeviceId> {
+export interface ExternalAudioDevice<TId extends ExternalDeviceId = ExternalDeviceId>
+  extends SerializableDevice<ExternalDeviceSettingsMap[TId]> {
   readonly id: TId;
   readonly name: string;
   readonly input: AudioNode;

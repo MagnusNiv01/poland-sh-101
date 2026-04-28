@@ -1,5 +1,6 @@
 import { noteToFrequency } from '../input/computerKeyboard';
 import { clonePatch, type PolandSh101Patch } from '../synth/patch';
+import type { SerializableDevice } from './devices/SerializableDevice';
 import type { ExternalDeviceId, ExternalDeviceSettingsMap } from './devices/types';
 import { AudioEngine } from './AudioEngine';
 
@@ -57,5 +58,9 @@ export class SynthController {
 
   getActiveNotes(): Set<number> {
     return new Set(this.activeNotes);
+  }
+
+  getSerializableDevices(): SerializableDevice[] {
+    return this.audio.getSerializableDevices();
   }
 }

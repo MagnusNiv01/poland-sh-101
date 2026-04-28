@@ -4,6 +4,9 @@ import { clamp, defaultFlangerSettings, type FlangerSettings } from '../types';
 export class FlangerDevice implements ExternalAudioDevice<'flanger'> {
   readonly id = 'flanger' as const;
   readonly name = 'Flanger';
+  readonly deviceType = 'flanger';
+  readonly stateVersion = 1;
+  readonly includeInPresets = true;
   readonly input: GainNode;
   readonly output: GainNode;
 
@@ -60,6 +63,16 @@ export class FlangerDevice implements ExternalAudioDevice<'flanger'> {
 
   getSettings(): FlangerSettings {
     return { ...this.settings };
+  }
+
+  getSerializableState(): FlangerSettings {
+    return this.getSettings();
+  }
+
+  applySerializableState(state: unknown): void {
+    if (state && typeof state === 'object') {
+      this.updateSettings(state as Partial<FlangerSettings>);
+    }
   }
 
   updateSettings(settings: Partial<FlangerSettings>): void {
