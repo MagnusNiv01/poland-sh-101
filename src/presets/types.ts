@@ -30,3 +30,11 @@ export type StoredPresetCollection = {
   version: number;
   presets: StoredPreset[];
 };
+
+export type ExportedPresetFile = {
+  fileType: 'poland-sh101-presets';
+  version: number;
+  exportedAt: string;
+  factoryPresets: StoredPreset[];
+  userPresets: StoredPreset[];
+};

@@ -1,4 +1,5 @@
 import type { PresetManager } from '../../../presets/PresetManager';
+import { downloadPresetExport, readPresetExport } from '../../../presets/presetImportExport';
 import type { StoredPreset, StudioSnapshot } from '../../../presets/types';
 
 type PresetControlDevicePanelOptions = {
@@ -12,6 +13,7 @@ export class PresetControlDevicePanel {
   private selectedPresetId = '';
   private readonly display: HTMLElement;
   private readonly select: HTMLSelectElement;
+  private readonly fileInput: HTMLInputElement;
   private readonly deleteButton: HTMLButtonElement;
 
   constructor(private readonly options: PresetControlDevicePanelOptions) {
@@ -30,20 +32,26 @@ export class PresetControlDevicePanel {
     this.select.className = 'preset-select';
     this.select.addEventListener('change', () => {
       this.selectedPresetId = this.select.value;
-      this.updateDisplay();
+      this.loadSelectedPreset();
     });
+    this.fileInput = document.createElement('input');
+    this.fileInput.type = 'file';
+    this.fileInput.accept = 'application/json,.json';
+    this.fileInput.className = 'preset-file-input';
+    this.fileInput.addEventListener('change', () => void this.importPresets());
 
     const buttons = document.createElement('div');
     buttons.className = 'preset-buttons';
     const newButton = this.createButton('NEW', () => this.createNewPreset());
     const saveButton = this.createButton('SAVE', () => this.savePreset());
-    const loadButton = this.createButton('LOAD', () => this.loadPreset());
+    const importButton = this.createButton('IMPORT', () => this.fileInput.click());
+    const exportButton = this.createButton('EXPORT', () => this.exportPresets());
     this.deleteButton = this.createButton('DELETE', () => this.deletePreset());
-    buttons.append(newButton, saveButton, loadButton, this.deleteButton);
+    buttons.append(newButton, saveButton, importButton, exportButton, this.deleteButton);
 
     const body = document.createElement('div');
     body.className = 'preset-control-body';
-    body.append(this.select, buttons);
+    body.append(this.select, buttons, this.fileInput);
 
     this.element.append(header, body);
     this.refreshPresetList();
@@ -80,14 +88,36 @@ export class PresetControlDevicePanel {
     this.refreshPresetList();
   }
 
-  private loadPreset(): void {
+  private loadSelectedPreset(): void {
     const preset = this.getSelectedPreset();
     if (!preset) {
+      this.refreshPresetList();
       return;
     }
     this.options.applySnapshot(preset.snapshot);
     this.selectedPresetId = preset.id;
     this.refreshPresetList();
+  }
+
+  private exportPresets(): void {
+    downloadPresetExport(this.options.manager.createExportFile());
+  }
+
+  private async importPresets(): Promise<void> {
+    const file = this.fileInput.files?.[0];
+    this.fileInput.value = '';
+    if (!file) {
+      return;
+    }
+
+    try {
+      const imported = await readPresetExport(file);
+      const importedCount = this.options.manager.importUserPresets(imported.userPresets);
+      this.refreshPresetList();
+      window.alert(`Imported ${importedCount} user preset${importedCount === 1 ? '' : 's'}.`);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Preset import failed.');
+    }
   }
 
   private deletePreset(): void {

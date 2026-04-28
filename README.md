@@ -123,7 +123,21 @@ The dropdown always includes ten read-only factory presets:
 - SPACE ECHO LEAD
 - ORGANISH SQUARE
 
-Factory presets are prefixed with `F -` in the selector/display. User presets are stored separately in localStorage and appear under the user group. `LOAD` works for both factory and user presets. `SAVE` on a factory preset creates a new user preset copy instead of overwriting the factory preset. `DELETE` is disabled for factory presets.
+Factory presets are prefixed with `F -` in the selector/display. User presets are stored separately in localStorage and appear under the user group. Selecting a preset in the dropdown immediately loads it; there is no separate load step. `SAVE` on a factory preset creates a new user preset copy instead of overwriting the factory preset. `DELETE` is disabled for factory presets.
+
+`EXPORT` downloads a human-readable `poland-sh101-presets.json` file with this shape:
+
+```ts
+type ExportedPresetFile = {
+  fileType: 'poland-sh101-presets';
+  version: number;
+  exportedAt: string;
+  factoryPresets: StoredPreset[];
+  userPresets: StoredPreset[];
+};
+```
+
+`IMPORT` accepts compatible JSON exports and imports only user presets. Built-in factory presets stay defined by code and are not replaced by imported files. Imported presets with ids that already exist are assigned new ids; duplicate names are allowed.
 
 External audio devices implement a serializable contract with stable `id`, `deviceType`, `stateVersion`, `includeInPresets`, `getSettings()`, and `updateSettings()`. Future devices become preset-compatible by implementing that contract and being added to the app's device registry; the preset manager does not import Chorus, Flanger, Echo, or Reverb directly.
 

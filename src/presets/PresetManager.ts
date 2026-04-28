@@ -1,6 +1,7 @@
 import { loadPresetCollection, savePresetCollection } from './presetStorage';
 import { factoryPresets } from './factoryPresets';
-import type { StoredPreset, StoredPresetCollection, StudioSnapshot } from './types';
+import type { ExportedPresetFile, StoredPreset, StoredPresetCollection, StudioSnapshot } from './types';
+import { PRESET_EXPORT_FILE_VERSION } from './presetValidation';
 
 export class PresetManager {
   private collection: StoredPresetCollection = loadPresetCollection();
@@ -78,12 +79,52 @@ export class PresetManager {
     this.persist();
   }
 
+  createExportFile(): ExportedPresetFile {
+    return {
+      fileType: 'poland-sh101-presets',
+      version: PRESET_EXPORT_FILE_VERSION,
+      exportedAt: new Date().toISOString(),
+      factoryPresets: this.listFactoryPresets(),
+      userPresets: this.listUserPresets(),
+    };
+  }
+
+  importUserPresets(presets: StoredPreset[]): number {
+    const knownIds = new Set(this.listPresets().map((preset) => preset.id));
+    const now = new Date().toISOString();
+    const imported = presets.map((preset) => {
+      let id = preset.id;
+      if (knownIds.has(id)) {
+        id = createPresetId();
+      }
+      knownIds.add(id);
+      return {
+        ...preset,
+        id,
+        source: 'user' as const,
+        createdAt: preset.createdAt || now,
+        updatedAt: now,
+      };
+    });
+
+    if (imported.length === 0) {
+      return 0;
+    }
+
+    this.collection = {
+      ...this.collection,
+      presets: [...this.collection.presets, ...imported],
+    };
+    this.persist();
+    return imported.length;
+  }
+
   private persist(): void {
     savePresetCollection(this.collection);
   }
 }
 
-function createPresetId(): string {
+export function createPresetId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }

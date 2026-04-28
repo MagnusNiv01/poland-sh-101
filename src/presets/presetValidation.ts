@@ -1,7 +1,8 @@
-import type { StoredPreset, StoredPresetCollection, StudioSnapshot } from './types';
+import type { ExportedPresetFile, StoredPreset, StoredPresetCollection, StudioSnapshot } from './types';
 
 export const PRESET_COLLECTION_VERSION = 1;
 export const STUDIO_SNAPSHOT_VERSION = 1;
+export const PRESET_EXPORT_FILE_VERSION = 1;
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -57,6 +58,28 @@ export function validateStudioSnapshot(value: unknown): StudioSnapshot | null {
     activeInstrumentId: value.activeInstrumentId,
     instruments: validateInstrumentStates(value.instruments),
     devices: validateDeviceStates(value.devices),
+  };
+}
+
+export function validateExportedPresetFile(value: unknown): ExportedPresetFile | null {
+  if (!isRecord(value) || value.fileType !== 'poland-sh101-presets' || value.version !== PRESET_EXPORT_FILE_VERSION) {
+    return null;
+  }
+  if (typeof value.exportedAt !== 'string' || !Array.isArray(value.factoryPresets) || !Array.isArray(value.userPresets)) {
+    return null;
+  }
+  return {
+    fileType: 'poland-sh101-presets',
+    version: PRESET_EXPORT_FILE_VERSION,
+    exportedAt: value.exportedAt,
+    factoryPresets: value.factoryPresets.flatMap((preset) => {
+      const valid = validateStoredPreset(preset);
+      return valid ? [{ ...valid, source: 'factory' as const }] : [];
+    }),
+    userPresets: value.userPresets.flatMap((preset) => {
+      const valid = validateStoredPreset(preset);
+      return valid ? [{ ...valid, source: 'user' as const }] : [];
+    }),
   };
 }
 
