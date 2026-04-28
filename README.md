@@ -16,6 +16,7 @@ Poland SH-101 is a local/private SH-101-inspired browser synthesizer. It follows
 - LFO with sine, triangle, saw, square, sample-and-hold/random, and noise modes
 - Pitch bend, portamento, transpose, and 32-key on-screen mini keyboard
 - Computer keyboard note input using `A W S E D F T G Y H U J K`
+- USB MIDI keyboard input via Web MIDI on supported browsers
 - Parameter smoothing for important continuous controls
 - Soft clipping at the output for safer gain staging
 - Preset Control Box for localStorage-based complete setup save/load
@@ -60,7 +61,32 @@ npm run build
 
 ## Browser Requirements
 
-Use a modern Chromium, Firefox, or Safari browser with AudioWorklet support. Audio starts after the first pointer or keyboard interaction because browsers require a user gesture before resuming an `AudioContext`.
+Use a modern browser with AudioWorklet support. Audio starts after the first pointer or keyboard interaction because browsers require a user gesture before resuming an `AudioContext`.
+
+Web MIDI support depends on the browser and security context. Use a supported browser on `localhost` or HTTPS.
+
+## USB MIDI Keyboard
+
+Connect a USB MIDI keyboard before or after opening the app. On the first pointer or keyboard interaction, the app requests Web MIDI access and connects all available MIDI input ports.
+
+Supported MIDI messages:
+
+- Note On and Note Off
+- Note On with velocity `0` as Note Off
+- Velocity normalized to `0.0..1.0`
+- Pitch Bend normalized to `-1.0..1.0`
+- Mod Wheel, CC 1, mapped to the existing LFO modulation amount path
+- Sustain Pedal, CC 64, with simple delayed note-off behavior
+
+A small MIDI status bar appears between the synth and external device rack. It reports unsupported browsers, denied permission, no connected MIDI inputs, connected device names, and recent MIDI activity.
+
+Troubleshooting:
+
+- Use Chrome, Edge, or Brave where Web MIDI is broadly supported.
+- Run the app on `localhost` or HTTPS.
+- Reconnect the keyboard before opening the app if the browser does not detect it.
+- Check browser MIDI permissions if access is denied.
+- Safari may not support Web MIDI reliably.
 
 ## Audio Engine
 
@@ -161,8 +187,8 @@ Some visible panel controls are intentionally visual placeholders in this versio
 - Reverb impulse responses are generated in code and do not model a specific physical space.
 - Sequencer, arpeggiator, and hold behavior are not implemented yet.
 - Portamento and legato behavior are basic.
-- MIDI input and patch persistence are not implemented yet.
-- Presets are local to the current browser profile and are not exported/imported as files yet.
+- MIDI mod wheel mapping is basic and uses the current LFO modulation amount path.
+- Presets are local to the current browser profile unless exported manually.
 - Desktop and laptop layouts are prioritized over mobile.
 
 ## Roadmap
@@ -174,8 +200,8 @@ Some visible panel controls are intentionally visual placeholders in this versio
 - More advanced stereo flanger phase handling
 - Higher-quality reverb algorithms and smoother impulse regeneration
 - Preset export/import and chain reordering UI
-- MIDI input
-- Patch save/load
+- More complete MIDI CC mapping
+- Patch save/load outside the full preset system
 - Functional sequencer
 - Functional arpeggiator
 - Improved portamento and legato behavior

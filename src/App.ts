@@ -1,4 +1,5 @@
 import { keyToNote } from './input/computerKeyboard';
+import { MidiInput } from './input/midi/MidiInput';
 import { SynthController } from './audio/SynthController';
 import {
   defaultChorusSettings,
@@ -14,6 +15,7 @@ import { STUDIO_SNAPSHOT_VERSION, isRecord } from './presets/presetValidation';
 import { clonePatch, defaultPatch } from './synth/patch';
 import { Keyboard } from './ui/components/Keyboard';
 import { DeviceRack } from './ui/components/devices/DeviceRack';
+import { MidiStatus } from './ui/components/MidiStatus';
 import { PerformancePanel } from './ui/components/PerformancePanel';
 import { SynthPanel } from './ui/components/SynthPanel';
 
@@ -24,6 +26,8 @@ export class App {
   private patch = clonePatch(defaultPatch);
   private deviceSettings: ExternalDeviceSettingsMap = cloneDeviceSettings(defaultDeviceSettings);
   private keyboard: Keyboard | null = null;
+  private midiInput: MidiInput | null = null;
+  private midiStatus: MidiStatus | null = null;
   private synthPanel: SynthPanel | null = null;
   private performancePanel: PerformancePanel | null = null;
   private deviceRack: DeviceRack | null = null;
@@ -37,6 +41,16 @@ export class App {
   render(): void {
     const shell = document.createElement('main');
     shell.className = 'app-shell';
+    this.midiStatus = new MidiStatus();
+    this.midiInput = new MidiInput({
+      onNoteOn: (note, velocity) => void this.noteOn(note, velocity),
+      onNoteOff: (note) => this.noteOff(note),
+      onPitchBend: (value) => this.controller.pitchBend(value),
+      // TODO: Route MIDI CC1 into a dedicated modulation target when a typed mod-wheel parameter exists.
+      onModWheel: (value) => this.updatePatch({ ...this.patch, benderLfoModAmount: value * 12 }),
+      onAllNotesOff: () => this.clearActiveNotes(),
+      onStatus: (status) => this.midiStatus?.update(status),
+    });
     this.deviceRack = new DeviceRack({
       presetManager: this.presetManager,
       createSnapshot: () => this.createStudioSnapshot(),
@@ -71,13 +85,16 @@ export class App {
     keyboardPanel.append(this.performancePanel.element, this.keyboard.element);
 
     shell.append(this.synthPanel.element, keyboardPanel);
-    this.root.replaceChildren(shell, this.deviceRack.element);
+    this.root.replaceChildren(shell, this.midiStatus.element, this.deviceRack.element);
     this.bindComputerKeyboard();
     this.bindFirstStart(shell);
   }
 
   private bindFirstStart(element: HTMLElement): void {
-    const start = () => void this.controller.start();
+    const start = () => {
+      void this.controller.start();
+      void this.midiInput?.initialize();
+    };
     element.addEventListener('pointerdown', start, { once: true });
     window.addEventListener('keydown', start, { once: true });
   }
@@ -108,23 +125,28 @@ export class App {
     });
 
     window.addEventListener('blur', () => {
-      this.pressedComputerKeys.clear();
-      this.activeNotes.clear();
-      this.controller.allNotesOff();
-      this.keyboard?.setActiveNotes(this.activeNotes);
+      this.midiInput?.allNotesOff();
+      this.clearActiveNotes();
     });
   }
 
-  private async noteOn(note: number): Promise<void> {
+  private async noteOn(note: number, velocity = 1): Promise<void> {
     this.activeNotes.add(note);
     this.keyboard?.setActiveNotes(this.activeNotes);
-    await this.controller.noteOn(note);
+    await this.controller.noteOn(note, velocity);
   }
 
   private noteOff(note: number): void {
     this.activeNotes.delete(note);
     this.keyboard?.setActiveNotes(this.activeNotes);
     this.controller.noteOff(note);
+  }
+
+  private clearActiveNotes(): void {
+    this.pressedComputerKeys.clear();
+    this.activeNotes.clear();
+    this.controller.allNotesOff();
+    this.keyboard?.setActiveNotes(this.activeNotes);
   }
 
   private updatePatch(patch: typeof this.patch): void {
@@ -183,10 +205,8 @@ export class App {
   }
 
   private applyStudioSnapshot(snapshot: StudioSnapshot): void {
-    this.pressedComputerKeys.clear();
-    this.activeNotes.clear();
-    this.controller.allNotesOff();
-    this.keyboard?.setActiveNotes(this.activeNotes);
+    this.midiInput?.allNotesOff();
+    this.clearActiveNotes();
 
     const sh101State = snapshot.instruments['poland-sh101'];
     if (sh101State?.instrumentType === 'poland-sh101') {
