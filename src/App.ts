@@ -10,6 +10,7 @@ export class App {
   private readonly controller = new SynthController(defaultPatch);
   private patch = clonePatch(defaultPatch);
   private keyboard: Keyboard | null = null;
+  private synthPanel: SynthPanel | null = null;
   private performancePanel: PerformancePanel | null = null;
   private readonly pressedComputerKeys = new Map<string, number>();
   private readonly activeNotes = new Set<number>();
@@ -22,7 +23,7 @@ export class App {
     const shell = document.createElement('main');
     shell.className = 'app-shell';
 
-    const panel = new SynthPanel({
+    this.synthPanel = new SynthPanel({
       patch: this.patch,
       onPatchChange: (patch) => {
         this.updatePatch(patch);
@@ -48,7 +49,7 @@ export class App {
     keyboardPanel.className = 'keyboard-panel';
     keyboardPanel.append(this.performancePanel.element, this.keyboard.element);
 
-    shell.append(panel.element, keyboardPanel);
+    shell.append(this.synthPanel.element, keyboardPanel);
     this.root.replaceChildren(shell);
     this.bindComputerKeyboard();
     this.bindFirstStart(shell);
@@ -107,6 +108,7 @@ export class App {
 
   private updatePatch(patch: typeof this.patch): void {
     this.patch = clonePatch(patch);
+    this.synthPanel?.updatePatch(this.patch);
     this.performancePanel?.updatePatch(this.patch);
     this.controller.updatePatch(this.patch);
   }

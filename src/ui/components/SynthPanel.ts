@@ -26,6 +26,10 @@ export class SynthPanel {
     );
   }
 
+  updatePatch(patch: PolandSh101Patch): void {
+    this.patch = { ...patch };
+  }
+
   private setPatch<K extends keyof PolandSh101Patch>(key: K, value: PolandSh101Patch[K]): void {
     this.patch = { ...this.patch, [key]: value };
     this.onPatchChange(this.patch);
