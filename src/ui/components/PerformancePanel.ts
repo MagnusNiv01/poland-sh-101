@@ -11,6 +11,8 @@ export class PerformancePanel {
   readonly element: HTMLElement;
   private patch: PolandSh101Patch;
   private readonly onPatchChange: (patch: PolandSh101Patch) => void;
+  private portamentoControl: HTMLElement | null = null;
+  private voiceModeControl: HTMLElement | null = null;
 
   constructor(options: PerformancePanelOptions) {
     this.patch = { ...options.patch };
@@ -27,6 +29,8 @@ export class PerformancePanel {
 
   updatePatch(patch: PolandSh101Patch): void {
     this.patch = { ...patch };
+    this.syncPortamentoState();
+    this.syncVoiceModeState();
   }
 
   private setPatch<K extends keyof PolandSh101Patch>(key: K, value: PolandSh101Patch[K]): void {
@@ -43,11 +47,53 @@ export class PerformancePanel {
   private createKnobRow(): HTMLElement {
     const row = document.createElement('div');
     row.className = 'performance-knobs';
+    this.portamentoControl = createKnob({
+      label: 'PORTAMENTO',
+      min: 0,
+      max: 1.5,
+      step: 0.001,
+      value: this.patch.portamentoTime,
+      onChange: (value) => this.setPatch('portamentoTime', value),
+    });
+    this.voiceModeControl = this.createVoiceModeControl();
     row.append(
       createKnob({ label: 'VOLUME', min: 0, max: 1, step: 0.01, value: this.patch.masterVolume, onChange: (value) => this.setPatch('masterVolume', value) }),
-      createKnob({ label: 'PORTAMENTO', min: 0, max: 1.5, step: 0.001, value: this.patch.portamentoTime, onChange: (value) => this.setPatch('portamentoTime', value) }),
+      this.portamentoControl,
+      this.voiceModeControl,
     );
+    this.syncPortamentoState();
+    this.syncVoiceModeState();
     return row;
+  }
+
+  private createVoiceModeControl(): HTMLElement {
+    const wrap = document.createElement('div');
+    wrap.className = 'control voice-mode-control';
+
+    const label = document.createElement('span');
+    label.className = 'control-label';
+    label.textContent = 'VOICE MODE';
+
+    const switchGroup = document.createElement('div');
+    switchGroup.className = 'voice-mode-switch';
+    switchGroup.setAttribute('role', 'group');
+    switchGroup.setAttribute('aria-label', 'Voice mode');
+
+    const mono = this.createVoiceModeButton('MONO', 'mono');
+    const poly = this.createVoiceModeButton('POLY', 'poly');
+    switchGroup.append(mono, poly);
+    wrap.append(label, switchGroup);
+    return wrap;
+  }
+
+  private createVoiceModeButton(label: string, mode: PolandSh101Patch['voiceMode']): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'voice-mode-option';
+    button.dataset.voiceMode = mode;
+    button.textContent = label;
+    button.addEventListener('click', () => this.setPatch('voiceMode', mode));
+    return button;
   }
 
   private createBenderArea(onPitchBend: (value: number) => void): HTMLElement {
@@ -194,5 +240,29 @@ export class PerformancePanel {
     button.textContent = label;
     button.addEventListener('click', () => button.classList.toggle('is-on'));
     return button;
+  }
+
+  private syncPortamentoState(): void {
+    if (!this.portamentoControl) {
+      return;
+    }
+    const isPoly = this.patch.voiceMode === 'poly';
+    this.portamentoControl.classList.toggle('is-disabled', isPoly);
+    const input = this.portamentoControl.querySelector('input');
+    if (input instanceof HTMLInputElement) {
+      input.disabled = isPoly;
+      input.value = String(this.patch.portamentoTime);
+    }
+  }
+
+  private syncVoiceModeState(): void {
+    if (!this.voiceModeControl) {
+      return;
+    }
+    for (const button of this.voiceModeControl.querySelectorAll<HTMLButtonElement>('.voice-mode-option')) {
+      const isActive = button.dataset.voiceMode === this.patch.voiceMode;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', String(isActive));
+    }
   }
 }

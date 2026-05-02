@@ -19,6 +19,10 @@ export class AdsrEnvelope {
     this.value = 0;
   }
 
+  isActive(): boolean {
+    return this.stage !== 'idle' || this.value > 0.0005;
+  }
+
   next(sampleRate: number, attack: number, decay: number, sustain: number, release: number): number {
     if (this.stage === 'attack') {
       this.value += (1 - this.value) * coefficient(sampleRate, attack);

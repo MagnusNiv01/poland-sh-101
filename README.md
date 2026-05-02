@@ -1,12 +1,12 @@
 # Poland SH-101
 
-Poland SH-101 is a local/private SH-101-inspired browser synthesizer. It follows the structure and control language of a classic monophonic hardware synth while using original TypeScript, CSS, and UI elements. It is not an official Roland product and does not use official Roland logos or assets.
+Poland SH-101 is a local/private SH-101-inspired browser synthesizer. It follows the structure and control language of a classic hardware synth while using original TypeScript, CSS, and UI elements. It is not an official Roland product and does not use official Roland logos or assets.
 
 <img width="1647" height="1206" alt="image" src="https://github.com/user-attachments/assets/9521ba7f-d9bc-4b20-985b-8c1225d312e9" />
 
 ## Current Features
 
-- Browser-based monophonic synth built with TypeScript and Vite
+- Browser-based SH-101-inspired synth built with TypeScript and Vite
 - SH-101-inspired dark hardware panel UI labeled “Poland SH-101”
 - AudioWorklet-based audio engine with sample-by-sample DSP
 - Saw, pulse, sub oscillator, and white noise sources
@@ -14,7 +14,8 @@ Poland SH-101 is a local/private SH-101-inspired browser synthesizer. It follows
 - Low-pass filter with resonance, envelope modulation, LFO modulation, and keyboard tracking
 - VCA gate/envelope mode, VCA level, master volume, and ADSR envelope
 - LFO with sine, triangle, saw, square, sample-and-hold/random, and noise modes
-- Pitch bend, portamento, transpose, and 32-key on-screen mini keyboard
+- MONO/POLY voice mode switch with classic mono behavior and first-version 4-voice polyphony
+- Pitch bend, mono-mode portamento, transpose, and 32-key on-screen mini keyboard
 - Computer keyboard note input using `A W S E D F T G Y H U J K`
 - USB MIDI keyboard input via Web MIDI on supported browsers
 - Parameter smoothing for important continuous controls
@@ -92,7 +93,9 @@ Troubleshooting:
 
 The synth runs fully in the browser. The main thread owns the `AudioContext`, loads an `AudioWorklet`, and sends strongly typed note, pitch bend, and patch messages.
 
-The AudioWorklet generates audio sample-by-sample. DSP is split into small modules for oscillators, envelope, filter, LFO, smoothing, and noise generation. Saw, pulse, and sub oscillators use PolyBLEP edge correction for cleaner high notes and smoother PWM. The filter is a cascaded TPT state-variable low-pass model with smoothed cutoff/resonance modulation, mild drive, and controlled feedback.
+The AudioWorklet generates audio sample-by-sample. DSP is split into small modules for oscillators, per-voice envelope/filter state, LFO, smoothing, noise generation, and voice allocation. Saw, pulse, and sub oscillators use PolyBLEP edge correction for cleaner high notes and smoother PWM. The filter is a cascaded TPT state-variable low-pass model with smoothed cutoff/resonance modulation, mild drive, and controlled feedback.
+
+The default `MONO` voice mode preserves the original single-voice behavior and applies the stored portamento time. `POLY` mode preallocates four voices, uses oldest-voice stealing when all voices are busy, and disables portamento while keeping the stored portamento value for when `MONO` is selected again.
 
 The synth output is routed through an external device chain before reaching the browser output:
 
@@ -186,7 +189,8 @@ Some visible panel controls are intentionally visual placeholders in this versio
 - Flanger phase controls the relative stereo modulation amount and polarity in this first version, not a full independent second LFO phase offset.
 - Reverb impulse responses are generated in code and do not model a specific physical space.
 - Sequencer, arpeggiator, and hold behavior are not implemented yet.
-- Portamento and legato behavior are basic.
+- Polyphony is limited to four voices, and poly-mode voice stealing is intentionally simple.
+- Portamento and legato behavior are basic and only apply in `MONO` mode.
 - MIDI mod wheel mapping is basic and uses the current LFO modulation amount path.
 - Presets are local to the current browser profile unless exported manually.
 - Desktop and laptop layouts are prioritized over mobile.
@@ -199,8 +203,9 @@ Some visible panel controls are intentionally visual placeholders in this versio
 - Additional external devices such as distortion, compressor, EQ, and phaser
 - More advanced stereo flanger phase handling
 - Higher-quality reverb algorithms and smoother impulse regeneration
-- Preset export/import and chain reordering UI
+- External device chain reordering UI
 - More complete MIDI CC mapping
+- Configurable polyphony voice counts and more advanced voice stealing
 - Patch save/load outside the full preset system
 - Functional sequencer
 - Functional arpeggiator

@@ -3,6 +3,7 @@ export type PwmSource = 'manual' | 'lfo' | 'envelope';
 export type SubMode = 'oneOctaveDown' | 'twoOctavesDown' | 'twoOctavesDownNarrow';
 export type VcaMode = 'gate' | 'envelope';
 export type LfoWaveform = 'sine' | 'triangle' | 'saw' | 'square' | 'random' | 'noise';
+export type VoiceMode = 'mono' | 'poly';
 
 export type PolandSh101Patch = {
   masterVolume: number;
@@ -36,6 +37,8 @@ export type PolandSh101Patch = {
   portamentoTime: number;
   pitchBendAmount: number;
   transpose: number;
+  voiceMode: VoiceMode;
+  maxVoices: number;
 };
 
 export const defaultPatch: PolandSh101Patch = {
@@ -70,6 +73,8 @@ export const defaultPatch: PolandSh101Patch = {
   portamentoTime: 0,
   pitchBendAmount: 2,
   transpose: 0,
+  voiceMode: 'mono',
+  maxVoices: 4,
 };
 
 export function clonePatch(patch: PolandSh101Patch): PolandSh101Patch {

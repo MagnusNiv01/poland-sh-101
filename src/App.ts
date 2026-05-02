@@ -266,6 +266,12 @@ function sanitizePatch(value: unknown): typeof defaultPatch {
       (patch[key] as typeof current) = current;
     }
   }
+  if (patch.voiceMode !== 'mono' && patch.voiceMode !== 'poly') {
+    patch.voiceMode = defaultPatch.voiceMode;
+  }
+  if (!Number.isFinite(patch.maxVoices) || patch.maxVoices < 1) {
+    patch.maxVoices = defaultPatch.maxVoices;
+  }
   return patch;
 }
 

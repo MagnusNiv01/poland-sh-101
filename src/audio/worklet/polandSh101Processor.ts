@@ -1,11 +1,9 @@
 import { type PolandSh101Patch, defaultPatch } from '../../synth/patch';
 import type { WorkletMessage } from '../types';
-import { AdsrEnvelope } from './dsp/Envelope';
-import { ResonantLowPassFilter } from './dsp/Filter';
 import { Lfo } from './dsp/Lfo';
 import { NoiseGenerator } from './dsp/Noise';
-import { clampPulseWidth, PulseOscillator, SawOscillator, SubOscillator } from './dsp/Oscillator';
 import { Smoother } from './dsp/Smoother';
+import { SynthVoice } from './dsp/SynthVoice';
 
 declare const sampleRate: number;
 declare class AudioWorkletProcessor {
@@ -14,19 +12,20 @@ declare class AudioWorkletProcessor {
 }
 declare function registerProcessor(name: string, processorCtor: typeof AudioWorkletProcessor): void;
 
+const MAX_POLY_VOICES = 4;
+
 class PolandSh101Processor extends AudioWorkletProcessor {
   private patch: PolandSh101Patch = { ...defaultPatch };
-  private readonly saw = new SawOscillator();
-  private readonly pulse = new PulseOscillator();
-  private readonly sub = new SubOscillator();
-  private readonly envelope = new AdsrEnvelope();
-  private readonly filter = new ResonantLowPassFilter();
+  private readonly voices: SynthVoice[] = [
+    new SynthVoice(sampleRate),
+    new SynthVoice(sampleRate),
+    new SynthVoice(sampleRate),
+    new SynthVoice(sampleRate),
+  ];
   private readonly lfo = new Lfo();
   private readonly noise = new NoiseGenerator();
-  private readonly frequency = new Smoother(sampleRate, 0.01, 110);
   private readonly cutoff = new Smoother(sampleRate, 0.015, 1200);
   private readonly resonance = new Smoother(sampleRate, 0.02, defaultPatch.filterResonance);
-  private readonly pulseWidth = new Smoother(sampleRate, 0.01, 0.5);
   private readonly sawLevel = new Smoother(sampleRate, 0.008, defaultPatch.sawLevel);
   private readonly pulseLevel = new Smoother(sampleRate, 0.008, defaultPatch.pulseLevel);
   private readonly subLevel = new Smoother(sampleRate, 0.008, defaultPatch.subLevel);
@@ -43,11 +42,8 @@ class PolandSh101Processor extends AudioWorkletProcessor {
   private readonly benderLfoModAmount = new Smoother(sampleRate, 0.02, defaultPatch.benderLfoModAmount);
   private readonly pitchBendValue = new Smoother(sampleRate, 0.008, 0);
   private readonly pitchBendAmount = new Smoother(sampleRate, 0.02, defaultPatch.pitchBendAmount);
-  private gate = false;
-  private noteFrequency = 110;
-  private noteVelocity = 0;
-  private currentNote = -1;
   private lfoAgeSeconds = 0;
+  private allocationAge = 0;
 
   constructor() {
     super();
@@ -62,52 +58,60 @@ class PolandSh101Processor extends AudioWorkletProcessor {
     this.updateSmoothTargets(patch);
 
     for (let i = 0; i < left.length; i += 1) {
-      if (this.gate) {
+      if (this.hasGateOnVoices()) {
         this.lfoAgeSeconds += 1 / sampleRate;
       }
 
-      const env = this.envelope.next(
-        sampleRate,
-        patch.envAttack,
-        patch.envDecay,
-        patch.envSustain,
-        patch.envRelease,
-      );
       const lfoDelayGain = patch.lfoDelay <= 0 ? 1 : Math.min(1, this.lfoAgeSeconds / patch.lfoDelay);
       const lfoValue = this.lfo.next(patch.lfoRate, patch.lfoWaveform, sampleRate) * lfoDelayGain;
       const bendSemitones = this.pitchBendValue.next() * this.pitchBendAmount.next();
       const pitchLfoSemitones = lfoValue * (this.lfoPitchAmount.next() + this.benderLfoModAmount.next());
-      const frequencyTarget = this.noteFrequency * 2 ** ((bendSemitones + pitchLfoSemitones) / 12);
-      this.frequency.setTarget(frequencyTarget * this.rangeMultiplier(patch.vcoRange));
-      const frequency = this.frequency.next();
-
+      const cutoffBase = this.cutoffFromControl(patch.filterCutoff);
+      this.cutoff.setTarget(cutoffBase);
+      const smoothedCutoffBase = this.cutoff.next();
+      const rangeMultiplier = this.rangeMultiplier(patch.vcoRange);
+      const sawLevel = this.sawLevel.next();
+      const pulseLevel = this.pulseLevel.next();
+      const subLevel = this.subLevel.next();
+      const noiseSample = this.noise.nextWhite() * this.noiseLevel.next();
+      const resonance = this.resonance.next();
+      const filterEnvAmount = this.filterEnvAmount.next();
+      const filterLfoAmount = this.filterLfoAmount.next();
+      const filterLfoBenderAmount = this.lfoFilterBenderAmount.next();
+      const filterKeyTracking = this.filterKeyTracking.next();
       const pwmAmount = this.pwmAmount.next();
       const lfoPulseWidthAmount = this.lfoPulseWidthAmount.next();
-      const pwmMod =
-        patch.pwmSource === 'lfo'
-          ? lfoValue * lfoPulseWidthAmount
-          : patch.pwmSource === 'envelope'
-            ? (env * 2 - 1) * pwmAmount
-            : 0;
-      this.pulseWidth.setTarget(clampPulseWidth(patch.pulseWidth + pwmMod));
-      const pulseWidth = this.pulseWidth.next();
+      const vcaLevel = this.vcaLevel.next();
+      const masterVolume = this.masterVolume.next();
+      const activeVoiceLimit = this.activeVoiceLimit(patch);
+      let mixedVoices = 0;
 
-      const saw = this.saw.next(frequency, sampleRate) * this.sawLevel.next();
-      const pulse = this.pulse.next(frequency, sampleRate, pulseWidth) * this.pulseLevel.next();
-      const subDivisor = patch.subMode === 'oneOctaveDown' ? 2 : 4;
-      const subNarrow = patch.subMode === 'twoOctavesDownNarrow';
-      const sub = this.sub.next(frequency, sampleRate, subDivisor, subNarrow) * this.subLevel.next();
-      const noise = this.noise.nextWhite() * this.noiseLevel.next();
-      const mixed = this.softClip((saw + pulse + sub + noise) * 0.32);
+      for (let voiceIndex = 0; voiceIndex < activeVoiceLimit; voiceIndex += 1) {
+        mixedVoices += this.voices[voiceIndex].next(
+          patch,
+          sampleRate,
+          lfoValue,
+          bendSemitones,
+          pitchLfoSemitones,
+          rangeMultiplier,
+          sawLevel,
+          pulseLevel,
+          subLevel,
+          noiseSample,
+          smoothedCutoffBase,
+          resonance,
+          filterEnvAmount,
+          filterLfoAmount,
+          filterLfoBenderAmount,
+          filterKeyTracking,
+          pwmAmount,
+          lfoPulseWidthAmount,
+          vcaLevel,
+        );
+      }
 
-      const cutoffBase = this.cutoffFromControl(patch.filterCutoff);
-      const keyTrack = Math.max(0, frequency - 130) * this.filterKeyTracking.next() * 8;
-      const envCutoff = env * this.filterEnvAmount.next() * 6200;
-      const lfoCutoff = lfoValue * (this.filterLfoAmount.next() + this.lfoFilterBenderAmount.next()) * 3600;
-      this.cutoff.setTarget(cutoffBase + keyTrack + envCutoff + lfoCutoff);
-      const filtered = this.filter.process(mixed, this.cutoff.next(), this.resonance.next(), sampleRate);
-      const amp = patch.vcaMode === 'gate' ? (this.gate ? 1 : 0) : env;
-      const shaped = this.softClip(filtered * amp * this.vcaLevel.next() * this.masterVolume.next() * this.noteVelocity * 1.9);
+      const voiceGain = this.isPolyMode(patch) ? 0.52 : 1;
+      const shaped = this.softClip(mixedVoices * voiceGain * masterVolume);
 
       left[i] = shaped;
       right[i] = shaped;
@@ -119,28 +123,27 @@ class PolandSh101Processor extends AudioWorkletProcessor {
   private handleMessage(message: WorkletMessage): void {
     if (message.type === 'patch') {
       this.patch = { ...message.patch };
-      this.frequency.setTime(sampleRate, Math.max(0.002, this.patch.portamentoTime));
+      if (!this.isPolyMode(this.patch)) {
+        for (let index = 1; index < this.voices.length; index += 1) {
+          this.voices[index].kill();
+        }
+      }
       return;
     }
     if (message.type === 'noteOn') {
-      this.currentNote = message.note;
-      this.noteFrequency = message.frequency;
-      this.noteVelocity = message.velocity;
-      this.gate = true;
-      this.lfoAgeSeconds = 0;
-      this.frequency.setTime(sampleRate, Math.max(0.002, this.patch.portamentoTime));
-      if (this.patch.portamentoTime <= 0.002) {
-        this.frequency.reset(message.frequency * this.rangeMultiplier(this.patch.vcoRange));
+      const wasIdle = !this.hasActiveVoices();
+      if (wasIdle) {
+        this.lfoAgeSeconds = 0;
       }
-      this.frequency.setTarget(message.frequency);
-      this.envelope.gateOn();
+      if (this.isPolyMode(this.patch)) {
+        this.allocatePolyVoice(message.note, message.frequency, message.velocity);
+      } else {
+        this.startMonoVoice(message.note, message.frequency, message.velocity);
+      }
       return;
     }
     if (message.type === 'noteOff') {
-      if (message.note === this.currentNote) {
-        this.gate = false;
-        this.envelope.gateOff();
-      }
+      this.releaseNote(message.note);
       return;
     }
     if (message.type === 'pitchBend') {
@@ -148,10 +151,111 @@ class PolandSh101Processor extends AudioWorkletProcessor {
       return;
     }
     if (message.type === 'allNotesOff') {
-      this.gate = false;
-      this.currentNote = -1;
-      this.envelope.gateOff();
+      this.killAllVoices();
     }
+  }
+
+  private startMonoVoice(note: number, frequency: number, velocity: number): void {
+    for (let index = 1; index < this.voices.length; index += 1) {
+      this.voices[index].kill();
+    }
+    const portamentoTime = Math.max(0, this.patch.portamentoTime);
+    this.voices[0].noteOn(
+      note,
+      frequency,
+      velocity,
+      sampleRate,
+      portamentoTime,
+      portamentoTime <= 0.002,
+      this.nextAllocationAge(),
+      this.rangeMultiplier(this.patch.vcoRange),
+    );
+  }
+
+  private allocatePolyVoice(note: number, frequency: number, velocity: number): void {
+    const voice = this.findPolyVoice();
+    voice.noteOn(
+      note,
+      frequency,
+      velocity,
+      sampleRate,
+      0,
+      true,
+      this.nextAllocationAge(),
+      this.rangeMultiplier(this.patch.vcoRange),
+    );
+  }
+
+  private findPolyVoice(): SynthVoice {
+    const limit = this.activeVoiceLimit(this.patch);
+    for (let index = 0; index < limit; index += 1) {
+      if (!this.voices[index].isActive()) {
+        return this.voices[index];
+      }
+    }
+
+    let oldestIndex = 0;
+    let oldestAge = this.voices[0].getAge();
+    for (let index = 1; index < limit; index += 1) {
+      const voiceAge = this.voices[index].getAge();
+      if (voiceAge < oldestAge) {
+        oldestAge = voiceAge;
+        oldestIndex = index;
+      }
+    }
+    return this.voices[oldestIndex];
+  }
+
+  private releaseNote(note: number): void {
+    const limit = this.activeVoiceLimit(this.patch);
+    for (let index = 0; index < limit; index += 1) {
+      if (this.voices[index].getNote() === note) {
+        this.voices[index].noteOff();
+      }
+    }
+  }
+
+  private killAllVoices(): void {
+    for (let index = 0; index < this.voices.length; index += 1) {
+      this.voices[index].kill();
+    }
+  }
+
+  private hasActiveVoices(): boolean {
+    for (let index = 0; index < this.voices.length; index += 1) {
+      if (this.voices[index].isActive()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private hasGateOnVoices(): boolean {
+    for (let index = 0; index < this.voices.length; index += 1) {
+      if (this.voices[index].isGateOn()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private nextAllocationAge(): number {
+    this.allocationAge += 1;
+    if (this.allocationAge > 1000000000) {
+      this.allocationAge = 1;
+    }
+    return this.allocationAge;
+  }
+
+  private isPolyMode(patch: PolandSh101Patch): boolean {
+    return patch.voiceMode === 'poly';
+  }
+
+  private activeVoiceLimit(patch: PolandSh101Patch): number {
+    if (!this.isPolyMode(patch)) {
+      return 1;
+    }
+    return Math.max(1, Math.min(MAX_POLY_VOICES, Math.floor(patch.maxVoices || MAX_POLY_VOICES)));
   }
 
   private rangeMultiplier(range: PolandSh101Patch['vcoRange']): number {
